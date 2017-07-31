@@ -1,3 +1,10 @@
+using MotionCaptureJointCalibration
+using RigidBodyDynamics
+using StaticArrays
+using Parameters
+
+import MotionCaptureJointCalibration: Point3DS
+
 function add_revolute_joint_noise!(q::AbstractVector, state::MechanismState, max_offset::Number)
     for joint in filter(x -> x.jointType isa Revolute, tree_joints(state.mechanism))
         @views q[configuration_range(state, joint)] .+= (rand(num_positions(joint)) .- 0.5) .* max_offset * 2
