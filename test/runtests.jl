@@ -5,9 +5,10 @@ using StaticArrays
 using ValkyrieRobot
 using Parameters
 
-import MotionCaptureJointCalibration: Point3DS
+import MotionCaptureJointCalibration: Point3DS, reconstruct!, deconstruct
+import DataStructures: OrderedDict
 
-include("synthetic_data_generation.jl")
+include(joinpath(@__DIR__, "synthetic_data_generation.jl"))
 
 T = Float64
 
@@ -26,5 +27,13 @@ srand(1)
 ground_truth_marker_positions, measured_marker_positions = generate_marker_positions(markerbodies)
 ground_truth_pose_data, measured_pose_data = generate_pose_data(state, ground_truth_marker_positions)
 
-
-
+@testset "deconstruct/reconstruct!" begin
+    q = zeros(num_positions(mechanism))
+    num_markers = Dict(b => length(markers) for (b, markers) in measured_marker_positions)
+    marker_positions_body = OrderedDict{RigidBody{T}, Vector{Point3DS{T}}}(b => [Point3D(default_frame(b), 0., 0., 0.) for i = 1 : num_markers[b]] for b in markerbodies)
+    reconstruct!(q, marker_positions_body, deconstruct(configuration(state), ground_truth_marker_positions)...)
+    @test all(q .== configuration(state))
+    for (body, positions) in ground_truth_marker_positions
+        @test all(marker_positions_body[body] .== positions)
+    end
+end

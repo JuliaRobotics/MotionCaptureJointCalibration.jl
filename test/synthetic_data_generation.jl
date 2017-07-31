@@ -2,6 +2,7 @@ using MotionCaptureJointCalibration
 using RigidBodyDynamics
 using StaticArrays
 using Parameters
+import DataStructures: OrderedDict
 
 import MotionCaptureJointCalibration: Point3DS
 
@@ -20,8 +21,10 @@ end
 
 function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions())
     # Marker positions in body frame
-    ground_truth_marker_positions = Dict(b => Vector{Point3DS{T}}() for b in markerbodies)
-    measured_marker_positions = Dict(b => Vector{Point3DS{T}}() for b in markerbodies)
+    B = eltype(bodies)
+    T = Float64
+    ground_truth_marker_positions = OrderedDict{B, Vector{Point3DS{T}}}(b => Vector{Point3DS{T}}() for b in markerbodies)
+    measured_marker_positions = OrderedDict{B, Vector{Point3DS{T}}}(b => Vector{Point3DS{T}}() for b in markerbodies)
     for body in markerbodies
         frame = default_frame(body)
         measured_marker_inds = randperm(options.num_markers)[1 : options.num_measured_markers]
@@ -48,7 +51,7 @@ end
 
 function generate_pose_data(
         state::MechanismState{X, M, C},
-        ground_truth_marker_positions::Dict{<:RigidBody{M}, Vector{Point3DS{T}}},
+        ground_truth_marker_positions::Associative{<:RigidBody{M}, <:AbstractVector{Point3DS{T}}},
         options::PoseDataGenerationOptions = PoseDataGenerationOptions()) where {X, M, C, T}
     ground_truth_pose_data = Vector{PoseData}()
     measured_pose_data = Vector{PoseData}()
@@ -63,8 +66,8 @@ function generate_pose_data(
         # Markers
         S = promote_type(C, T)
         markerbodies = keys(ground_truth_marker_positions)
-        ground_truth_marker_data = Dict(b => Vector{Point3DS{S}}() for b in markerbodies)
-        measured_marker_data = Dict(b => Vector{Point3DS{S}}() for b in markerbodies)
+        ground_truth_marker_data = OrderedDict(b => Vector{Point3DS{S}}() for b in markerbodies)
+        measured_marker_data = OrderedDict(b => Vector{Point3DS{S}}() for b in markerbodies)
         for body in markerbodies
             toworld = transform_to_root(state, body)
             for (j, marker_body) in enumerate(ground_truth_marker_positions[body])
