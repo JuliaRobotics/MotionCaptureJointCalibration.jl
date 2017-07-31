@@ -11,6 +11,8 @@ import DataStructures: OrderedDict
 using RigidBodyDynamics
 import RigidBodyDynamics: GenericJoint
 
+include("util.jl")
+
 const Point3DS{T} = Point3D{SVector{3, T}}
 
 struct PoseData
@@ -43,6 +45,25 @@ function reconstruct!(q::AbstractVector, marker_positions_body::OrderedDict{<:Ri
             index += 3
         end
     end
+end
+
+function _marker_residual(
+        state::MechanismState{X, M, C},
+        marker_positions_world::Associative{RigidBody{M}, <:AbstractVector{<:Point3D}},
+        marker_positions_body::Associative{RigidBody{M}, <:AbstractVector{<:Point3D}},
+        scales::Associative{RigidBody{M}, Float64}) where {X, M, C}
+    residual = zero(C)
+    for (body, scale) in scales
+        tf = transform_to_root(state, body)
+        positions_body = marker_positions_body[body]
+        positions_world = marker_positions_world[body]
+        for i in eachindex(positions_body, positions_world)
+            p = tf * positions_body[i]
+            pmeas = positions_world[i]
+            residual += scale * mapreduce(x -> zero_nans(x)^2, +, (p - pmeas).v)
+        end
+    end
+    residual
 end
 
 end # module

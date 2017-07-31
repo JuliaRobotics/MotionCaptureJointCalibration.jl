@@ -5,7 +5,7 @@ using StaticArrays
 using ValkyrieRobot
 using Parameters
 
-import MotionCaptureJointCalibration: Point3DS, reconstruct!, deconstruct
+import MotionCaptureJointCalibration: Point3DS, reconstruct!, deconstruct, _marker_residual
 import DataStructures: OrderedDict
 
 include(joinpath(@__DIR__, "synthetic_data_generation.jl"))
@@ -19,6 +19,7 @@ state = MechanismState{T}(mechanism)
 foot = findbody(mechanism, "leftFoot")
 pelvis = findbody(mechanism, "pelvis")
 markerbodies = [pelvis; foot]
+scales = Dict(pelvis => 100., foot => 1.)
 
 p = path(mechanism, pelvis, foot)
 joints = collect(p)
@@ -35,5 +36,13 @@ ground_truth_pose_data, measured_pose_data = generate_pose_data(state, ground_tr
     @test all(q .== configuration(state))
     for (body, positions) in ground_truth_marker_positions
         @test all(marker_positions_body[body] .== positions)
+    end
+end
+
+@testset "_marker_residual" begin
+    for data in measured_pose_data
+        set_configuration!(state, data.configuration)
+        _marker_residual(state, data.marker_positions, ground_truth_marker_positions, scales)
+        # TODO: test something
     end
 end
