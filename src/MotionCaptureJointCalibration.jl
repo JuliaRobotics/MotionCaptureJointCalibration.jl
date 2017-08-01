@@ -85,15 +85,15 @@ end
 #   rd = <∇residual_v , v> = <∇residual_v , v_Q qd> = <v_Qᵀ ∇residual_v , qd>
 #
 # which shows that g = v_Qᵀ ∇residual_v
-function _∇marker_residual(
+function _∇marker_residual!(g::AbstractVector{C},
         state::MechanismState{X, M, C},
         marker_positions_world::OrderedDict{RigidBody{M}, <:AbstractVector{<:Point3D}},
         marker_positions_body::OrderedDict{RigidBody{M}, <:AbstractVector{<:Point3D}},
         scales::Associative{RigidBody{M}, Float64}) where {X, M, C}
+    nq = num_positions(state)
+    ∇residual_q = view(g, 1 : nq) # TODO: allocates
+    ∇residual_ps = view(g, nq + 1 : length(g))
     ∇residual_v = zeros(C, num_velocities(state)) # TODO: allocates
-    ∇residual_q = zeros(C, num_positions(state)) # TODO: allocates
-    num_markers = sum(length, values(marker_positions_body))
-    ∇residual_ps = zeros(C, 3 * num_markers) # TODO: allocates
     mechanism = state.mechanism
     nv = num_velocities(state)
     p_index = 0
@@ -120,7 +120,7 @@ function _∇marker_residual(
         end
     end
     configuration_derivative_to_velocity_adjoint!(∇residual_q, state, ∇residual_v)
-    [∇residual_q' ∇residual_ps'] # TODO: allocates
+    g
 end
 
 end # module

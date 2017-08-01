@@ -6,17 +6,12 @@ import DataStructures: OrderedDict
 
 import MotionCaptureJointCalibration: Point3DS
 
-function add_revolute_joint_noise!(q::AbstractVector, state::MechanismState, max_offset::Number)
-    for joint in filter(x -> x.jointType isa Revolute, tree_joints(state.mechanism))
-        @views q[configuration_range(state, joint)] .+= (rand(num_positions(joint)) .- 0.5) .* max_offset * 2
-    end
-end
 
 @with_kw struct MarkerPositionGenerationOptions
     marker_measurement_stddev::Float64 = 1e-5
     marker_offset_max::Float64 = 0.1
     num_markers::Int = 4
-    num_measured_markers::Int = 3
+    num_measured_markers::Int = 4 #3: unmeasured markers currently give Ipopt trouble
 end
 
 function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions())
@@ -29,7 +24,7 @@ function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options:
         frame = default_frame(body)
         measured_marker_inds = randperm(options.num_markers)[1 : options.num_measured_markers]
         for i = 1 : options.num_markers
-            ground_truth = Point3D(frame, (rand(SVector{3}) - 0.5) * options.marker_offset_max)
+            ground_truth = Point3D(frame, (rand(SVector{3}) - 0.5) * 2 * options.marker_offset_max)
             push!(ground_truth_marker_positions[body], ground_truth)
             measured = if i ∈ measured_marker_inds
                 measurement_error = FreeVector3D(frame, options.marker_measurement_stddev * randn(SVector{3}))
@@ -43,15 +38,23 @@ function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options:
     ground_truth_marker_positions, measured_marker_positions
 end
 
+function generate_joint_offset(joint::Joint, max_offset::Number)
+    (rand(num_positions(joint)) .- 0.5) .* max_offset .* 2
+end
+
+function generate_joint_offsets(joints::AbstractVector{<:Joint}, max_offset::Number)
+    Dict(j => generate_joint_offset(j, max_offset) for j in joints)
+end
+
 @with_kw struct PoseDataGenerationOptions
-    num_poses::Int = 10
+    num_poses::Int = 20
     motion_capture_noise_stddev::Float64 = 1e-6
-    revolute_joint_offset_max::Float64 = 1e-2;
 end
 
 function generate_pose_data(
         state::MechanismState{X, M, C},
         ground_truth_marker_positions::Associative{<:RigidBody{M}, <:AbstractVector{Point3DS{T}}},
+        ground_truth_offsets::Associative{<:Joint{M}, <:AbstractVector{T}},
         options::PoseDataGenerationOptions = PoseDataGenerationOptions()) where {X, M, C, T}
     ground_truth_pose_data = Vector{PoseData}()
     measured_pose_data = Vector{PoseData}()
@@ -61,7 +64,10 @@ function generate_pose_data(
         # Joint configurations
         q_ground_truth = copy(configuration(state))
         q_measured = copy(q_ground_truth)
-        add_revolute_joint_noise!(q_measured, state, options.revolute_joint_offset_max)
+        for (joint, offset) in ground_truth_offsets
+            @views q_measured[configuration_range(state, joint)] .+= offset
+        end
+        # TODO: add actual joint measurement noise
 
         # Markers
         S = promote_type(C, T)
