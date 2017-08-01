@@ -4,8 +4,9 @@ using RigidBodyDynamics
 using StaticArrays
 using ValkyrieRobot
 using Parameters
+using ForwardDiff
 
-import MotionCaptureJointCalibration: Point3DS, reconstruct!, deconstruct, _marker_residual
+import MotionCaptureJointCalibration: Point3DS, reconstruct!, deconstruct, _marker_residual, _∇marker_residual
 import DataStructures: OrderedDict
 
 include(joinpath(@__DIR__, "synthetic_data_generation.jl"))
@@ -27,6 +28,7 @@ joints = collect(p)
 srand(1)
 ground_truth_marker_positions, measured_marker_positions = generate_marker_positions(markerbodies)
 ground_truth_pose_data, measured_pose_data = generate_pose_data(state, ground_truth_marker_positions)
+num_poses = length(ground_truth_pose_data)
 
 @testset "deconstruct/reconstruct!" begin
     q = zeros(num_positions(mechanism))
@@ -39,10 +41,31 @@ ground_truth_pose_data, measured_pose_data = generate_pose_data(state, ground_tr
     end
 end
 
-@testset "_marker_residual" begin
+@testset "marker_residual" begin
     for data in measured_pose_data
         set_configuration!(state, data.configuration)
         _marker_residual(state, data.marker_positions, ground_truth_marker_positions, scales)
         # TODO: test something
     end
+end
+
+@testset "marker_residual gradient" begin
+    function marker_residual_inefficient(x::X...) where {X}
+        M = eltype(mechanism)
+        state = MechanismState{X}(mechanism)
+        marker_positions_body = OrderedDict{RigidBody{M}, Vector{Point3DS{X}}}(
+            b => [Point3D(default_frame(b), zero(X), zero(X), zero(X)) for i = 1 : length(measured_marker_positions[b])] for b in markerbodies
+        )
+        reconstruct!(configuration(state), marker_positions_body, x...)
+        setdirty!(state)
+        _marker_residual(state, measured_pose_data[1].marker_positions, marker_positions_body, scales)
+    end
+
+    data = measured_pose_data[1]
+    set_configuration!(state, data.configuration)
+    J = _∇marker_residual(state, data.marker_positions, ground_truth_marker_positions, scales)
+
+    f(args) = [marker_residual_inefficient(args...)]
+    Jcheck = ForwardDiff.jacobian(f, deconstruct(data.configuration, ground_truth_marker_positions))
+    @test isapprox(J, Jcheck, atol = 1e-14)
 end
