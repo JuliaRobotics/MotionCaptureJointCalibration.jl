@@ -34,7 +34,7 @@ before_install:
 
 ## uncomment the following lines to override the default test script
 script:
- - julia -e 'Pkg.clone(pwd()); Pkg.checkout("RigidBodyDynamics"); Pkg.clone("https://github.com/tkoolen/ValkyrieRobot.jl"); Pkg.build("MotionCaptureJointCalibration"); Pkg.test("MotionCaptureJointCalibration"; coverage=true)'
+ - julia -e 'Pkg.clone(pwd()); Pkg.checkout("Rotations"); Pkg.checkout("RigidBodyDynamics"); Pkg.clone("https://github.com/tkoolen/ValkyrieRobot.jl"); Pkg.build("MotionCaptureJointCalibration"); Pkg.test("MotionCaptureJointCalibration"; coverage=true)'
 after_success:
   # push coverage results to Coveralls
   - julia -e 'cd(Pkg.dir("MotionCaptureJointCalibration")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
