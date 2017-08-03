@@ -4,6 +4,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     calibration_param_bounds = problem.calibration_param_bounds
     marker_bodies = problem.ordered_marker_bodies
     marker_location_measurements = problem.marker_location_measurements
+    free_joint_configuration_bounds = problem.free_joint_configuration_bounds
     pose_data = problem.pose_data
     body_weights = problem.body_weights
 
@@ -23,9 +24,9 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     @variable(m, pose_residuals[1 : num_poses])
 
     # calibration param constraints
-    for joint in calibration_joints
-        lower = first.(calibration_param_bounds[joint])
-        upper = last.(calibration_param_bounds[joint])
+    for (joint, bounds) in calibration_param_bounds
+        lower = first.(bounds)
+        upper = last.(bounds)
         params = calibration_params[joint]
         @constraint(m, lower .<= params .<= upper)
     end
@@ -39,30 +40,34 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
         setvalue.(q, qmeasured)
 
         # free joints
-        for j in free_joints
-            if joint_type(j) isa QuaternionFloating
-                qj = q[configuration_range(state, j)]
-                qrotj = qj[1 : 4] # TODO: method for getting rotation part
-                @constraint(m, -1 .<= qj .<= 1) # TODO: have user provide bounds; note: these are essential
-                @NLconstraint(m, qrotj[1]^2 + qrotj[2]^2 + qrotj[3]^2 + qrotj[4]^2 == 1) # Unit norm constraint
+        for (joint, bounds) in free_joint_configuration_bounds # note: bounds on joint configurations appear to be essential for Ipopt
+            qjoint = q[configuration_range(state, joint)]
+            lower = first.(bounds)
+            upper = last.(bounds)
+
+            if joint_type(joint) isa QuaternionFloating
+                # Unit norm constraint
+                qrot = qjoint[1 : 4] # TODO: method for getting rotation part
+                @constraint(m, -1 .<= qrot .<= 1)
+                @NLconstraint(m, qrot[1]^2 + qrot[2]^2 + qrot[3]^2 + qrot[4]^2 == 1)
             end
         end
 
         # offsets
-        for j in calibration_joints
-            range = configuration_range(state, j)
-            qmeasured_j = qmeasured[range]
-            qj = q[range]
-            cj = calibration_params[j]
-            @constraint(m, qmeasured_j .== qj .+ cj)
+        for joint in calibration_joints
+            range = configuration_range(state, joint)
+            qmeasured_joint = qmeasured[range]
+            qjoint = q[range]
+            cjoint = calibration_params[joint]
+            @constraint(m, qmeasured_joint .== qjoint .+ cjoint)
         end
 
         # other joints
-        for j in setdiff(tree_joints(mechanism), [free_joints; calibration_joints])
-            range = configuration_range(state, j)
-            qmeasured_j = qmeasured[range]
-            qj = q[range]
-            @constraint(m, qj .== qmeasured_j)
+        for joint in setdiff(tree_joints(mechanism), [free_joints; calibration_joints])
+            range = configuration_range(state, joint)
+            qmeasured_joint = qmeasured[range]
+            qjoint = q[range]
+            @constraint(m, qjoint .== qmeasured_joint)
         end
     end
 
