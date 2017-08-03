@@ -11,7 +11,7 @@ import MotionCaptureJointCalibration: Point3DS
     marker_measurement_stddev::Float64 = 1e-5
     marker_offset_max::Float64 = 0.1
     num_markers::Int = 4
-    num_measured_markers::Int = 4 #3: unmeasured markers currently give Ipopt trouble
+    num_measured_markers::Int = 3#4
 end
 
 function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions())
@@ -47,17 +47,20 @@ function generate_joint_offsets(joints::AbstractVector{<:Joint}, max_offset::Num
 end
 
 @with_kw struct PoseDataGenerationOptions
-    num_poses::Int = 20
+    num_poses::Int = 25
     motion_capture_noise_stddev::Float64 = 1e-6
+    joint_configuration_noise_stddev::Float64 = 1e-4
 end
 
 function generate_pose_data(
         state::MechanismState{X, M, C},
         ground_truth_marker_positions::Associative{<:RigidBody{M}, <:AbstractVector{Point3DS{T}}},
         ground_truth_offsets::Associative{<:Joint{M}, <:AbstractVector{T}},
+        free_joints::AbstractVector{<:Joint{M}},
         options::PoseDataGenerationOptions = PoseDataGenerationOptions()) where {X, M, C, T}
     ground_truth_pose_data = Vector{PoseData}()
     measured_pose_data = Vector{PoseData}()
+    mechanism = state.mechanism
     for i = 1 : options.num_poses
         rand!(state)
 
@@ -67,7 +70,13 @@ function generate_pose_data(
         for (joint, offset) in ground_truth_offsets
             @views q_measured[configuration_range(state, joint)] .+= offset
         end
-        # TODO: add actual joint measurement noise
+        for joint in free_joints
+            qjoint = view(q_measured, configuration_range(state, joint))
+            zero_configuration!(qjoint, joint)
+        end
+        for joint in setdiff(tree_joints(mechanism), free_joints)
+            q_measured[configuration_range(state, joint)] .+= options.joint_configuration_noise_stddev * randn(num_positions(joint))
+        end
 
         # Markers
         S = promote_type(C, T)
