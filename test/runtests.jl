@@ -24,7 +24,6 @@ scales = Dict(pelvis => 1., foot => 1.) # be careful with these; having them be 
 p = path(mechanism, pelvis, foot)
 correction_joints = collect(p)
 calibration_param_bounds = Dict(j => [(-0.05, 0.05)] for j in correction_joints)
-
 free_joint_configuration_bounds = Dict{GenericJoint{T}, Vector{Tuple{Float64, Float64}}}()
 for joint in filter(isfloating, tree_joints(mechanism))
     free_joint_configuration_bounds[joint] = fill((-1., 1.), num_positions(joint))
@@ -35,7 +34,6 @@ srand(1)
 ground_truth_marker_positions, measured_marker_positions = generate_marker_positions(markerbodies)
 ground_truth_offsets = generate_joint_offsets(correction_joints, 1e-2)
 ground_truth_pose_data, measured_pose_data = generate_pose_data(state, ground_truth_marker_positions, ground_truth_offsets, free_joints)
-num_poses = length(ground_truth_pose_data)
 
 @testset "deconstruct/reconstruct!" begin
     q = zeros(num_positions(mechanism))
@@ -45,14 +43,6 @@ num_poses = length(ground_truth_pose_data)
     @test all(q .== configuration(state))
     for (body, positions) in ground_truth_marker_positions
         @test all(marker_positions_body[body] .== positions)
-    end
-end
-
-@testset "marker_residual" begin
-    for data in measured_pose_data
-        set_configuration!(state, data.configuration)
-        _marker_residual(state, markerbodies, data.marker_positions, ground_truth_marker_positions, scales)
-        # TODO: test something
     end
 end
 
@@ -96,7 +86,29 @@ end
     # check_derivatives_for_naninf = "yes"
 
     problem = CalibrationProblem(mechanism, calibration_param_bounds, free_joint_configuration_bounds, measured_marker_positions, measured_pose_data)
-    solve(problem, solver)
+    result = solve(problem, solver)
+    @test result.status == :Optimal
 
-    # TODO: test
+    # check calibration parameters
+    calibration_joints = keys(calibration_param_bounds)
+    for joint in calibration_joints
+        sol = result.calibration_params[joint]
+        truth = ground_truth_offsets[joint]
+        @test isapprox(sol, truth; atol = 1e-3)
+    end
+
+    # check configurations
+    num_poses = length(ground_truth_pose_data)
+    solution_state = MechanismState{T}(mechanism)
+    ground_truth_state = MechanismState{T}(mechanism)
+    for i = 1 : num_poses
+        set_configuration!(solution_state, result.configurations[i])
+        set_configuration!(ground_truth_state, ground_truth_pose_data[i].configuration)
+        for body in bodies(mechanism)
+            @test isapprox(transform_to_root(solution_state, body), transform_to_root(ground_truth_state, body); atol = 1e-3)
+        end
+    end
+
+    # make sure printing doesn't error
+    show(DevNull, result)
 end

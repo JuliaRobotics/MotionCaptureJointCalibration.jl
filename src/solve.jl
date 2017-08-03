@@ -110,7 +110,11 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     end
     JuMP.setNLobjective(m, :Min, :(+($(pose_residuals...)) / $num_poses))
 
-    JuMP.solve(m)
+    status = JuMP.solve(m)
 
-    # TODO: do something with results
+    calibration_params_sol = Dict(j => getvalue.(c) for (j, c) in calibration_params)
+    configurations_sol = getvalue.(configurations)
+    marker_positions_sol = Dict(b => (p -> Point3D(p.frame, SVector{3}(getvalue.(p.v)))).(positions) for (b, positions) in marker_positions)
+
+    CalibrationResult(status, getobjectivevalue(m), calibration_params_sol, configurations_sol, marker_positions_sol)
 end
