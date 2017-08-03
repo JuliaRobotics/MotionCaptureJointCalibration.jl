@@ -19,6 +19,12 @@ matrix:
  allow_failures:
  - julia: nightly
 
+ before_install:
+  - export PYTHON=""
+  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew install gcc ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update ; fi
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install gfortran -y ; fi
+
 ## uncomment and modify the following lines to manually install system packages
 #addons:
 #  apt: # apt-get for linux
