@@ -1,3 +1,5 @@
+const Point3DS{T} = Point3D{SVector{3, T}}
+
 zero_nans(x) = ifelse(isnan(x), zero(x), x)
 
 function canonicalize_body_fixed_points!(d::Associative{<:RigidBody, <:AbstractVector{<:Point3D}})
