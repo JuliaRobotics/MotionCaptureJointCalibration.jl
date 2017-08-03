@@ -2,10 +2,8 @@ using MotionCaptureJointCalibration
 using RigidBodyDynamics
 using StaticArrays
 using Parameters
-import DataStructures: OrderedDict
 
 import MotionCaptureJointCalibration: Point3DS
-
 
 @with_kw struct MarkerPositionGenerationOptions
     marker_measurement_stddev::Float64 = 1e-5
@@ -18,10 +16,10 @@ function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options:
     # Marker positions in body frame
     B = eltype(bodies)
     T = Float64
-    ground_truth_marker_positions = OrderedDict{B, Vector{Point3DS{T}}}(b => Vector{Point3DS{T}}() for b in markerbodies)
-    measured_marker_positions = OrderedDict{B, Vector{Point3DS{T}}}(b => Vector{Point3DS{T}}() for b in markerbodies)
+    ground_truth_marker_positions = Dict{B, Vector{Point3DS{T}}}(b => Vector{Point3DS{T}}() for b in markerbodies)
+    measured_marker_positions = Dict{B, Vector{Point3DS{T}}}(b => Vector{Point3DS{T}}() for b in markerbodies)
     for body in markerbodies
-        frame = default_frame(body)
+        frame = default_frame(body) # TODO: use some other frame to improve test coverage
         measured_marker_inds = randperm(options.num_markers)[1 : options.num_measured_markers]
         for i = 1 : options.num_markers
             ground_truth = Point3D(frame, (rand(SVector{3}) - 0.5) * 2 * options.marker_offset_max)
@@ -58,8 +56,8 @@ function generate_pose_data(
         ground_truth_offsets::Associative{<:Joint{M}, <:AbstractVector{T}},
         free_joints::AbstractVector{<:Joint{M}},
         options::PoseDataGenerationOptions = PoseDataGenerationOptions()) where {X, M, C, T}
-    ground_truth_pose_data = Vector{PoseData}()
-    measured_pose_data = Vector{PoseData}()
+    ground_truth_pose_data = Vector{PoseData{C}}()
+    measured_pose_data = Vector{PoseData{C}}()
     mechanism = state.mechanism
     for i = 1 : options.num_poses
         rand!(state)
@@ -81,8 +79,8 @@ function generate_pose_data(
         # Markers
         S = promote_type(C, T)
         markerbodies = keys(ground_truth_marker_positions)
-        ground_truth_marker_data = OrderedDict(b => Vector{Point3DS{S}}() for b in markerbodies)
-        measured_marker_data = OrderedDict(b => Vector{Point3DS{S}}() for b in markerbodies)
+        ground_truth_marker_data = Dict(b => Vector{Point3DS{S}}() for b in markerbodies)
+        measured_marker_data = Dict(b => Vector{Point3DS{S}}() for b in markerbodies)
         for body in markerbodies
             toworld = transform_to_root(state, body)
             for (j, marker_body) in enumerate(ground_truth_marker_positions[body])
