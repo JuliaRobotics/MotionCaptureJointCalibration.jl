@@ -37,24 +37,25 @@ end
 #   rd = <∇residual_v , v> = <∇residual_v , v_Q qd> = <v_Qᵀ ∇residual_v , qd>
 #
 # which shows that g = v_Qᵀ ∇residual_v
-function _∇marker_residual!(g::AbstractVector{C},
-        state::MechanismState{X, M, C},
-        ordered_marker_bodies::AbstractVector{<:RigidBody},
-        marker_positions_world::Associative{RigidBody{M}, <:AbstractVector{<:Point3D}},
-        marker_positions_body::Associative{RigidBody{M}, <:AbstractVector{<:Point3D}},
-        body_weights::Associative{RigidBody{M}, Float64}) where {X, M, C}
+function _∇marker_residual!(g::AbstractVector{T},
+        state::MechanismState{T},
+        ordered_marker_bodies::AbstractVector{RigidBody{T}},
+        marker_positions_world::Associative{RigidBody{T}, <:AbstractVector{Point3DS{T}}},
+        marker_positions_body::Associative{RigidBody{T}, <:AbstractVector{Point3DS{T}}},
+        body_weights::Associative{RigidBody{T}, T},
+        jacobians::Dict{RigidBody{T}, Pair{TreePath{RigidBody{T}, GenericJoint{T}}, GeometricJacobian{Matrix{T}}}}) where {T}
     nq = num_positions(state)
     ∇residual_q = view(g, 1 : nq) # TODO: allocates
     ∇residual_ps = view(g, nq + 1 : length(g)) # TODO: allocates
-    ∇residual_v = zeros(C, num_velocities(state)) # TODO: allocates
+    ∇residual_v = zeros(T, num_velocities(state)) # TODO: allocates
     mechanism = state.mechanism
     nv = num_velocities(state)
     p_index = 0
     for body in ordered_marker_bodies
         weight = body_weights[body]
         tf = transform_to_root(state, body)
-        path_to_root = path(mechanism, root_body(mechanism), body) #TODO: allocates
-        J = geometric_jacobian(state, path_to_root) # TODO: allocates
+        path_to_root, J = jacobians[body]
+        geometric_jacobian!(J, state, path_to_root)
         positions_body = marker_positions_body[body]
         positions_world = marker_positions_world[body]
         for i in eachindex(positions_body, positions_world)

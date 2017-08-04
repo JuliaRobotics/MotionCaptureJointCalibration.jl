@@ -10,6 +10,7 @@ export
 
 using StaticArrays
 using RigidBodyDynamics
+import RigidBodyDynamics.Graphs: TreePath
 using JuMP
 using MathProgBase: SolverInterface.AbstractMathProgSolver
 
