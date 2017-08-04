@@ -12,6 +12,6 @@ function Base.show(io::IO, result::CalibrationResult{T}) where {T}
     n = 0
     for (joint, params) in result.calibration_params
         print(io, "$(joint.name): $params")
-        (n += 1) < num_joints && println()
+        (n += 1) < num_joints && println(io)
     end
 end
