@@ -69,7 +69,9 @@ end
 
         set_configuration!(state, q)
         g = zeros(length(Jcheck))
-        _∇marker_residual!(g, state, markerbodies, marker_positions_world, ground_truth_marker_positions, scales)
+        paths_to_root = Dict(b => path(mechanism, root_body(mechanism), b) for b in markerbodies)
+        jacobians = Dict(b => (p => geometric_jacobian(state, p)) for (b, p) in paths_to_root)
+        _∇marker_residual!(g, state, markerbodies, marker_positions_world, ground_truth_marker_positions, scales, jacobians)
         J = g'
 
         @test isapprox(J, Jcheck, atol = 1e-14)
