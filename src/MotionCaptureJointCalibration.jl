@@ -6,7 +6,9 @@ module MotionCaptureJointCalibration
 export
     PoseData,
     CalibrationProblem,
-    solve
+    CalibrationResult,
+    solve,
+    num_poses
 
 using StaticArrays
 using RigidBodyDynamics
@@ -22,5 +24,6 @@ include("result.jl")
 include("deconstruct.jl")
 include("residual.jl")
 include("solve.jl")
+include("visualization.jl")
 
 end # module
