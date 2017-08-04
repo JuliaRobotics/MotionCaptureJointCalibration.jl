@@ -34,44 +34,36 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     for i = 1 : num_poses
         q = configurations[i]
         qmeasured = pose_data[i].configuration
-
-        # initial value
         setvalue.(q, qmeasured)
-
-        # free joints
-        for (joint, bounds) in free_joint_configuration_bounds # note: bounds on joint configurations appear to be essential for Ipopt
-            qjoint = q[configuration_range(state, joint)]
-            lower = first.(bounds)
-            upper = last.(bounds)
-            if joint_type(joint) isa QuaternionFloating
-                qrot = qjoint[1 : 4] # TODO: method for getting rotation part
-                setlowerbound.(qrot, max.(lower[1 : 4], -1))
-                setupperbound.(qrot, min.(upper[1 : 4], 1))
-                @NLconstraint(m, qrot[1]^2 + qrot[2]^2 + qrot[3]^2 + qrot[4]^2 == 1) # Unit norm constraint
-                qtrans = qjoint[5 : 7]
-                setlowerbound.(qtrans, lower[5 : 7])
-                setupperbound.(qtrans, upper[5 : 7])
-            else
+        for joint in tree_joints(mechanism) # to fix the order
+            range = configuration_range(state, joint)
+            qjoint = q[range]
+            if joint ∈ free_joints
+                # free joint configuration bounds
+                bounds = free_joint_configuration_bounds[joint]
+                lower = first.(bounds)
+                upper = last.(bounds)
+                if joint_type(joint) isa QuaternionFloating
+                    # TODO: method for getting rotation part
+                    qrot = qjoint[1 : 4]
+                    @NLconstraint(m, qrot[1]^2 + qrot[2]^2 + qrot[3]^2 + qrot[4]^2 == 1) # Unit norm constraint
+                    lower[1 : 4] .= max.(lower[1 : 4], -1)
+                    upper[1 : 4] .= min.(upper[1 : 4], +1)
+                end
                 setlowerbound.(qjoint, lower)
                 setupperbound.(qjoint, upper)
+            elseif joint ∈ calibration_joints
+                # calibration joint model
+                # TODO: generalize to handle not just offsets but also other models
+                # TODO: add redundant bounds on qjoint?
+                qjoint_measured = qmeasured[range]
+                cjoint = calibration_params[joint]
+                @constraint(m, qjoint_measured .== qjoint .+ cjoint)
+            else
+                # other joints: fix at measured position
+                qjoint_measured = qmeasured[range]
+                JuMP.fix.(qjoint, qjoint_measured)
             end
-        end
-
-        # offsets
-        for joint in calibration_joints
-            range = configuration_range(state, joint)
-            qmeasured_joint = qmeasured[range]
-            qjoint = q[range]
-            cjoint = calibration_params[joint]
-            @constraint(m, qmeasured_joint .== qjoint .+ cjoint)
-        end
-
-        # other joints
-        for joint in setdiff(tree_joints(mechanism), [free_joints; calibration_joints])
-            range = configuration_range(state, joint)
-            qmeasured_joint = qmeasured[range]
-            qjoint = q[range]
-            JuMP.fix.(qjoint, qmeasured_joint)
         end
     end
 

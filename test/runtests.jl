@@ -20,7 +20,7 @@ state = MechanismState{T}(mechanism)
 foot = findbody(mechanism, "leftFoot")
 pelvis = findbody(mechanism, "pelvis")
 markerbodies = [pelvis; foot]
-scales = Dict(pelvis => 1., foot => 1.) # be careful with these; having them be different orders of magnitude can lead to numerical issues
+scales = Dict(pelvis => 5., foot => 1.) # be careful with these; having them be different orders of magnitude can lead to numerical issues
 p = path(mechanism, pelvis, foot)
 correction_joints = collect(p)
 calibration_param_bounds = Dict(j => [(-0.05, 0.05)] for j in correction_joints)
