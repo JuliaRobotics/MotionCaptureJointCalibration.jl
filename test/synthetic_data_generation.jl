@@ -51,6 +51,7 @@ end
     num_poses::Int = 25
     motion_capture_noise_stddev::Float64 = 1e-6
     joint_configuration_noise_stddev::Float64 = 1e-4
+    occlusion_probability::Float64 = 0.025
 end
 
 function generate_pose_data(
@@ -89,9 +90,14 @@ function generate_pose_data(
             for (j, marker_body) in enumerate(ground_truth_marker_positions[body])
                 marker_world = transform(marker_body, toworld)
                 push!(ground_truth_marker_data[body], marker_world)
-                noise = FreeVector3D(marker_world.frame, options.motion_capture_noise_stddev * randn(SVector{3}))
-                push!(measured_marker_data[body], marker_world + noise)
-                # TODO: add occlusions
+                occluded = rand() < options.occlusion_probability
+                measured = if occluded
+                    Point3D(marker_world.frame, fill(S(NaN), SVector{3}))
+                else
+                    noise = FreeVector3D(marker_world.frame, options.motion_capture_noise_stddev * randn(SVector{3}))
+                    marker_world + noise
+                end
+                push!(measured_marker_data[body], measured)
             end
         end
         push!(ground_truth_pose_data, PoseData(q_ground_truth, ground_truth_marker_data))

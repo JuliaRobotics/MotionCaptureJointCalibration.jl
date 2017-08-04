@@ -45,7 +45,7 @@ function _∇marker_residual!(g::AbstractVector{C},
         body_weights::Associative{RigidBody{M}, Float64}) where {X, M, C}
     nq = num_positions(state)
     ∇residual_q = view(g, 1 : nq) # TODO: allocates
-    ∇residual_ps = view(g, nq + 1 : length(g))
+    ∇residual_ps = view(g, nq + 1 : length(g)) # TODO: allocates
     ∇residual_v = zeros(C, num_velocities(state)) # TODO: allocates
     mechanism = state.mechanism
     nv = num_velocities(state)

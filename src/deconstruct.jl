@@ -1,5 +1,5 @@
 function deconstruct(ordered_marker_bodies::AbstractVector{<:RigidBody}, q::AbstractVector,
-        marker_positions_body::Associative{<:RigidBody, <:AbstractVector{<:Point3D}}) # TODO: PoseData? it's in body frame though.
+        marker_positions_body::Associative{<:RigidBody, <:AbstractVector{<:Point3D}})
     x = copy(q)
     for body in ordered_marker_bodies
         positions = marker_positions_body[body]

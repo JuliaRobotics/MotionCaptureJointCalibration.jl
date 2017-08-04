@@ -80,10 +80,9 @@ end
     # NLopt SLSQP works well with up to 10 poses, free floating joint configurations and two unmeasured markers
     # solver = NLoptSolver(algorithm = :LD_SLSQP)
 
-    solver = IpoptSolver(print_level = 4, max_iter = 10000, derivative_test = "first-order", tol = 1e-10)
+    solver = IpoptSolver(print_level = 4, max_iter = 10000, derivative_test = "first-order", check_derivatives_for_naninf = "yes", tol = 1e-10)
     # other useful options:
     # hessian_approximation = "limited-memory"
-    # check_derivatives_for_naninf = "yes"
 
     problem = CalibrationProblem(mechanism, calibration_param_bounds, free_joint_configuration_bounds, measured_marker_positions, measured_pose_data)
     result = solve(problem, solver)
@@ -105,7 +104,7 @@ end
         set_configuration!(solution_state, result.configurations[i])
         set_configuration!(ground_truth_state, ground_truth_pose_data[i].configuration)
         for body in bodies(mechanism)
-            @test isapprox(transform_to_root(solution_state, body), transform_to_root(ground_truth_state, body); atol = 1e-3)
+            @test isapprox(transform_to_root(solution_state, body), transform_to_root(ground_truth_state, body); atol = 2e-3)
         end
     end
 
