@@ -20,7 +20,7 @@ state = MechanismState{T}(mechanism)
 foot = findbody(mechanism, "leftFoot")
 pelvis = findbody(mechanism, "pelvis")
 markerbodies = [pelvis; foot]
-scales = Dict(pelvis => 1., foot => 1.) # be careful with these; having them be different orders of magnitude can lead to numerical issues
+scales = Dict(pelvis => 5., foot => 1.) # be careful with these; having them be different orders of magnitude can lead to numerical issues
 p = path(mechanism, pelvis, foot)
 correction_joints = collect(p)
 calibration_param_bounds = Dict(j => [(-0.05, 0.05)] for j in correction_joints)
@@ -80,10 +80,9 @@ end
     # NLopt SLSQP works well with up to 10 poses, free floating joint configurations and two unmeasured markers
     # solver = NLoptSolver(algorithm = :LD_SLSQP)
 
-    solver = IpoptSolver(print_level = 4, max_iter = 10000, derivative_test = "first-order", tol = 1e-10)
+    solver = IpoptSolver(print_level = 4, max_iter = 10000, derivative_test = "first-order", check_derivatives_for_naninf = "yes", tol = 1e-10)
     # other useful options:
     # hessian_approximation = "limited-memory"
-    # check_derivatives_for_naninf = "yes"
 
     problem = CalibrationProblem(mechanism, calibration_param_bounds, free_joint_configuration_bounds, measured_marker_positions, measured_pose_data)
     result = solve(problem, solver)
@@ -105,7 +104,7 @@ end
         set_configuration!(solution_state, result.configurations[i])
         set_configuration!(ground_truth_state, ground_truth_pose_data[i].configuration)
         for body in bodies(mechanism)
-            @test isapprox(transform_to_root(solution_state, body), transform_to_root(ground_truth_state, body); atol = 1e-3)
+            @test isapprox(transform_to_root(solution_state, body), transform_to_root(ground_truth_state, body); atol = 2e-3)
         end
     end
 

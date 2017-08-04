@@ -9,28 +9,31 @@ import MotionCaptureJointCalibration: Point3DS
     marker_measurement_stddev::Float64 = 1e-5
     marker_offset_max::Float64 = 0.1
     num_markers::Int = 4
-    num_measured_markers::Int = 3#4
+    num_measured_markers::Int = 3
 end
 
 function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions())
     # Marker positions in body frame
     B = eltype(bodies)
     T = Float64
-    ground_truth_marker_positions = Dict{B, Vector{Point3DS{T}}}(b => Vector{Point3DS{T}}() for b in markerbodies)
-    measured_marker_positions = Dict{B, Vector{Point3DS{T}}}(b => Vector{Point3DS{T}}() for b in markerbodies)
+    ground_truth_marker_positions = Dict(b => Vector{Point3DS{T}}() for b in markerbodies)
+    measured_marker_positions = Dict(b => Vector{Tuple{Point3DS{T}, Point3DS{T}}}() for b in markerbodies)
     for body in markerbodies
         frame = default_frame(body) # TODO: use some other frame to improve test coverage
         measured_marker_inds = randperm(options.num_markers)[1 : options.num_measured_markers]
         for i = 1 : options.num_markers
             ground_truth = Point3D(frame, (rand(SVector{3}) - 0.5) * 2 * options.marker_offset_max)
             push!(ground_truth_marker_positions[body], ground_truth)
-            measured = if i ∈ measured_marker_inds
+            bounds = if i ∈ measured_marker_inds
                 measurement_error = FreeVector3D(frame, options.marker_measurement_stddev * randn(SVector{3}))
-                ground_truth + measurement_error
+                measured = ground_truth + measurement_error
+                measured, measured
             else
-                Point3D(frame, fill(NaN, SVector{3}))
+                lower = Point3D(frame, fill(-0.2, SVector{3}))
+                upper = Point3D(frame, fill(0.2, SVector{3}))
+                lower, upper
             end
-            push!(measured_marker_positions[body], measured)
+            push!(measured_marker_positions[body], bounds)
         end
     end
     ground_truth_marker_positions, measured_marker_positions
@@ -48,6 +51,7 @@ end
     num_poses::Int = 25
     motion_capture_noise_stddev::Float64 = 1e-6
     joint_configuration_noise_stddev::Float64 = 1e-4
+    occlusion_probability::Float64 = 0.025
 end
 
 function generate_pose_data(
@@ -86,9 +90,14 @@ function generate_pose_data(
             for (j, marker_body) in enumerate(ground_truth_marker_positions[body])
                 marker_world = transform(marker_body, toworld)
                 push!(ground_truth_marker_data[body], marker_world)
-                noise = FreeVector3D(marker_world.frame, options.motion_capture_noise_stddev * randn(SVector{3}))
-                push!(measured_marker_data[body], marker_world + noise)
-                # TODO: add occlusions
+                occluded = rand() < options.occlusion_probability
+                measured = if occluded
+                    Point3D(marker_world.frame, fill(S(NaN), SVector{3}))
+                else
+                    noise = FreeVector3D(marker_world.frame, options.motion_capture_noise_stddev * randn(SVector{3}))
+                    marker_world + noise
+                end
+                push!(measured_marker_data[body], measured)
             end
         end
         push!(ground_truth_pose_data, PoseData(q_ground_truth, ground_truth_marker_data))
