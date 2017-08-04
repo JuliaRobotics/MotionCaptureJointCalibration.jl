@@ -44,6 +44,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
             qjoint = q[configuration_range(state, joint)]
             lower = first.(bounds)
             upper = last.(bounds)
+            @constraint(m, lower .<= qjoint .<= upper)
 
             if joint_type(joint) isa QuaternionFloating
                 # Unit norm constraint
