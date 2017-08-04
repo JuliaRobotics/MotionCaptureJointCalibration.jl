@@ -1,4 +1,4 @@
-__precompile__(false) # because of Requires
+__precompile__(true)
 
 module MotionCaptureJointCalibration
 
