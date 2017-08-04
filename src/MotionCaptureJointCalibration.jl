@@ -1,8 +1,7 @@
-__precompile__()
+__precompile__(false) # because of Requires
 
 module MotionCaptureJointCalibration
 
-# types
 export
     PoseData,
     CalibrationProblem,
@@ -10,12 +9,13 @@ export
     solve,
     num_poses
 
+using Requires
 using StaticArrays
 using RigidBodyDynamics
-import RigidBodyDynamics.Graphs: TreePath
 using JuMP
 using MathProgBase: SolverInterface.AbstractMathProgSolver
 
+import RigidBodyDynamics.Graphs: TreePath
 import RigidBodyDynamics: GenericJoint
 
 include("util.jl")
