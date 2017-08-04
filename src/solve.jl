@@ -44,13 +44,18 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
             qjoint = q[configuration_range(state, joint)]
             lower = first.(bounds)
             upper = last.(bounds)
-            @constraint(m, lower .<= qjoint .<= upper)
-
             if joint_type(joint) isa QuaternionFloating
-                # Unit norm constraint
                 qrot = qjoint[1 : 4] # TODO: method for getting rotation part
-                @constraint(m, -1 .<= qrot .<= 1)
-                @NLconstraint(m, qrot[1]^2 + qrot[2]^2 + qrot[3]^2 + qrot[4]^2 == 1)
+                rotlower = max.(lower[1 : 4], -1)
+                rotupper = min.(upper[1 : 4], 1)
+                @constraint(m, rotlower .<= qrot .<= rotupper)
+                @NLconstraint(m, qrot[1]^2 + qrot[2]^2 + qrot[3]^2 + qrot[4]^2 == 1) # Unit norm constraint
+                qtrans = qjoint[5 : 7]
+                translower = lower[5 : 7]
+                transupper = upper[5 : 7]
+                @constraint(m, translower .<= qtrans .<= transupper)
+            else
+                @constraint(m, lower .<= qjoint .<= upper)
             end
         end
 
