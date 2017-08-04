@@ -3,7 +3,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     mechanism = problem.mechanism
     calibration_param_bounds = problem.calibration_param_bounds
     marker_bodies = problem.ordered_marker_bodies
-    marker_location_measurements = problem.marker_location_measurements
+    marker_location_bounds = problem.marker_location_bounds
     free_joint_configuration_bounds = problem.free_joint_configuration_bounds
     pose_data = problem.pose_data
     body_weights = problem.body_weights
@@ -12,7 +12,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     calibration_joints = collect(keys(problem.calibration_param_bounds))
     free_joints = collect(keys(problem.free_joint_configuration_bounds))
     num_callibration_params = Dict(j => length(problem.calibration_param_bounds[j]) for j in calibration_joints)
-    num_markers = Dict(b => length(markers) for (b, markers) in marker_location_measurements)
+    num_markers = Dict(b => length(bounds) for (b, bounds) in marker_location_bounds)
     num_poses = length(pose_data)
 
     m = Model(solver = solver)
@@ -76,15 +76,17 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     end
 
     # marker position constraints and initial values
-    for body in keys(marker_location_measurements)
-        for (position, measured_position) in zip(marker_positions[body], marker_location_measurements[body])
-            @framecheck position.frame measured_position.frame
-            for (coord, measured_coord) in zip(position.v, measured_position.v)
-                if !isnan(measured_coord)
-                    JuMP.fix(coord, measured_coord)
+    for body in keys(marker_location_bounds)
+        for (position, bounds) in zip(marker_positions[body], marker_location_bounds[body])
+            lower, upper = bounds
+            @framecheck position.frame lower.frame
+            @framecheck position.frame upper.frame
+            for (coord, lower_coord, upper_coord) in zip(position.v, lower.v, upper.v)
+                if lower_coord == upper_coord
+                    JuMP.fix(coord, lower_coord)
                 else
-                    setlowerbound(coord, -0.2) # TODO: don't hardcode
-                    setupperbound(coord, 0.2) # TODO: don't hardcode
+                    setlowerbound(coord, lower_coord)
+                    setupperbound(coord, upper_coord)
                 end
             end
         end
