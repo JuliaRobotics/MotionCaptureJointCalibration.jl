@@ -1,8 +1,6 @@
 # MotionCaptureJointCalibration
 
-[![Build Status](https://travis-ci.org/tkoolen/MotionCaptureJointCalibration.jl.svg?branch=master)](https://travis-ci.org/tkoolen/MotionCaptureJointCalibration.jl)
-
-[![codecov.io](http://codecov.io/github/tkoolen/MotionCaptureJointCalibration.jl/coverage.svg?branch=master)](http://codecov.io/github/tkoolen/MotionCaptureJointCalibration.jl?branch=master)
+[![Build Status](https://travis-ci.org/tkoolen/MotionCaptureJointCalibration.jl.svg?branch=master)](https://travis-ci.org/tkoolen/MotionCaptureJointCalibration.jl) [![codecov.io](http://codecov.io/github/tkoolen/MotionCaptureJointCalibration.jl/coverage.svg?branch=master)](http://codecov.io/github/tkoolen/MotionCaptureJointCalibration.jl?branch=master)
 
 MotionCaptureJointCalibration provides functionality for kinematic calibration of robots given a series of measurements of (a subset of) joint positions along with motion capture marker locations. It does so by solving a nonlinear program (NLP) with weighted square error between measured and predicted marker locations as the objective to minimize.
 
