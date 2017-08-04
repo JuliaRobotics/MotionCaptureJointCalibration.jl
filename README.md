@@ -7,7 +7,7 @@ MotionCaptureJointCalibration provides functionality for kinematic calibration o
 MotionCaptureJointCalibration is a Julia library built on top of [JuMP](https://github.com/JuliaOpt/JuMP.jl) and [RigidBodyDynamics.jl](https://github.com/tkoolen/RigidBodyDynamics.jl). JuMP makes it possible to choose between various NLP solvers. [Ipopt](https://github.com/JuliaOpt/Ipopt.jl) appears to perform fairly well for the problems formulated by this package.
 
 ## Features
-Current features include:
+Features include:
 * handling of occlusions
 * handling of measurements of the body-fixed locations of only a subset of the markers attached to the robot (the unknown marker positions will be solved for, given rough bounds)
 * handling of measurements of only a subset of a robot's joint positions (the unknown joint positions will be solved for, given rough bounds)
@@ -16,7 +16,7 @@ Current features include:
 Currently, MotionCaptureJointCalibration can only estimate constant offsets between measured and actual joint positions.
 
 ## News
-* August 4, 2017: the package is currently under initial construction.
+* August 4, 2017: the package is under initial construction.
 
 ## Installation
 MotionCaptureJointCalibration is not yet registered, and currently requires the master branches of Rotations and RigidBodyDynamics. Please see the [.travis.yml file](https://github.com/tkoolen/MotionCaptureJointCalibration.jl/blob/master/.travis.yml) for installation instructions on Linux and OSX.
