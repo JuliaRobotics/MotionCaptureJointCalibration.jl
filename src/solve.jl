@@ -108,7 +108,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
         arg_expressions = [:($(marker_residual_args[i])) for i = 1 : num_marker_residual_args]
         JuMP.addNLconstraint(m, :($(pose_residuals[i]) == $(fun)($(arg_expressions...))))
     end
-    JuMP.setNLobjective(m, :Min, :(+($(pose_residuals...)) / $num_poses))
+    @NLobjective(m, Min, sum(pose_residuals[i] for i = 1 : num_poses) / num_poses)
 
     status = JuMP.solve(m)
 
