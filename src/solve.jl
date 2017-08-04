@@ -25,10 +25,9 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
 
     # calibration param constraints
     for (joint, bounds) in calibration_param_bounds
-        lower = first.(bounds)
-        upper = last.(bounds)
         params = calibration_params[joint]
-        @constraint(m, lower .<= params .<= upper)
+        setlowerbound.(params, first.(bounds))
+        setupperbound.(params, last.(bounds))
     end
 
     # joint configuration constraints and initial values
@@ -46,16 +45,15 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
             upper = last.(bounds)
             if joint_type(joint) isa QuaternionFloating
                 qrot = qjoint[1 : 4] # TODO: method for getting rotation part
-                rotlower = max.(lower[1 : 4], -1)
-                rotupper = min.(upper[1 : 4], 1)
-                @constraint(m, rotlower .<= qrot .<= rotupper)
+                setlowerbound.(qrot, max.(lower[1 : 4], -1))
+                setupperbound.(qrot, min.(upper[1 : 4], 1))
                 @NLconstraint(m, qrot[1]^2 + qrot[2]^2 + qrot[3]^2 + qrot[4]^2 == 1) # Unit norm constraint
                 qtrans = qjoint[5 : 7]
-                translower = lower[5 : 7]
-                transupper = upper[5 : 7]
-                @constraint(m, translower .<= qtrans .<= transupper)
+                setlowerbound.(qtrans, lower[5 : 7])
+                setupperbound.(qtrans, upper[5 : 7])
             else
-                @constraint(m, lower .<= qjoint .<= upper)
+                setlowerbound.(qjoint, lower)
+                setupperbound.(qjoint, upper)
             end
         end
 
@@ -73,7 +71,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
             range = configuration_range(state, joint)
             qmeasured_joint = qmeasured[range]
             qjoint = q[range]
-            @constraint(m, qjoint .== qmeasured_joint)
+            JuMP.fix.(qjoint, qmeasured_joint)
         end
     end
 
@@ -83,10 +81,10 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
             @framecheck position.frame measured_position.frame
             for (coord, measured_coord) in zip(position.v, measured_position.v)
                 if !isnan(measured_coord)
-                    @constraint(m, coord == measured_coord)
-                    setvalue(coord, measured_coord)
+                    JuMP.fix(coord, measured_coord)
                 else
-                    @constraint(m, -0.2 <= coord <= 0.2) # TODO: don't hardcode
+                    setlowerbound(coord, -0.2) # TODO: don't hardcode
+                    setupperbound(coord, 0.2) # TODO: don't hardcode
                 end
             end
         end
