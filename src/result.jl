@@ -15,3 +15,5 @@ function Base.show(io::IO, result::CalibrationResult{T}) where {T}
         (n += 1) < num_joints && println(io)
     end
 end
+
+num_poses(result::CalibrationResult) = length(result.configurations)

@@ -16,9 +16,9 @@ function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options:
     # Marker positions in body frame
     B = eltype(bodies)
     T = Float64
-    ground_truth_marker_positions = Dict(b => Vector{Point3DS{T}}() for b in markerbodies)
-    measured_marker_positions = Dict(b => Vector{Tuple{Point3DS{T}, Point3DS{T}}}() for b in markerbodies)
-    for body in markerbodies
+    ground_truth_marker_positions = Dict(b => Vector{Point3DS{T}}() for b in bodies)
+    measured_marker_positions = Dict(b => Vector{Tuple{Point3DS{T}, Point3DS{T}}}() for b in bodies)
+    for body in bodies
         frame = default_frame(body) # TODO: use some other frame to improve test coverage
         measured_marker_inds = randperm(options.num_markers)[1 : options.num_measured_markers]
         for i = 1 : options.num_markers

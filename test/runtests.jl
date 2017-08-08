@@ -4,6 +4,7 @@ using StaticArrays
 using ValkyrieRobot
 using ForwardDiff
 using Ipopt
+using RigidBodyTreeInspector
 using Base.Test
 
 import MotionCaptureJointCalibration: Point3DS, reconstruct!, deconstruct, _marker_residual, _∇marker_residual!
@@ -14,6 +15,8 @@ T = Float64
 
 val = Valkyrie()
 mechanism = val.mechanism
+vis = Visualizer()[:valkyrie]
+setgeometry!(vis, mechanism, parse_urdf(ValkyrieRobot.urdfpath(), mechanism; package_path = [ValkyrieRobot.packagepath()]))
 remove_fixed_tree_joints!(mechanism)
 state = MechanismState{T}(mechanism)
 
@@ -111,5 +114,10 @@ end
     end
 
     # make sure printing doesn't error
-    show(DevNull, result)
+    show(result)
+
+    # visualization (just to make sure the code doesn't error)
+    println()
+    inspect!(state, vis, problem, result)
+    nothing
 end
