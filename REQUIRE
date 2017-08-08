@@ -1,4 +1,5 @@
 julia 0.6
 RigidBodyDynamics
 JuMP
+Parameters
 Requires # for optional visualization stuff

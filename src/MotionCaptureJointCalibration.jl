@@ -7,7 +7,10 @@ export
     CalibrationProblem,
     CalibrationResult,
     solve,
-    num_poses
+    num_poses,
+    num_calibration_params,
+    num_markers,
+    num_bodies
 
 using Requires
 using StaticArrays
@@ -25,5 +28,6 @@ include("deconstruct.jl")
 include("residual.jl")
 include("solve.jl")
 include("visualization.jl")
+include("synthetic.jl")
 
 end # module

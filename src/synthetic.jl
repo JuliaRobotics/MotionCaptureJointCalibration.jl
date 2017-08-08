@@ -1,7 +1,18 @@
+module SyntheticDataGeneration
+
+export
+    MarkerPositionGenerationOptions,
+    PoseDataGenerationOptions,
+    generate_marker_positions,
+    generate_joint_offset,
+    generate_pose_data,
+    generate_calibration_problem
+
 using MotionCaptureJointCalibration
 using RigidBodyDynamics
 using StaticArrays
 using Parameters
+using Base.Iterators
 
 import MotionCaptureJointCalibration: Point3DS
 
@@ -10,6 +21,13 @@ import MotionCaptureJointCalibration: Point3DS
     marker_offset_max::Float64 = 0.1
     num_markers::Int = 4
     num_measured_markers::Int = 3
+end
+
+@with_kw struct PoseDataGenerationOptions
+    num_poses::Int = 25
+    motion_capture_noise_stddev::Float64 = 1e-6
+    joint_configuration_noise_stddev::Float64 = 1e-4
+    occlusion_probability::Float64 = 0.025
 end
 
 function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions())
@@ -45,13 +63,6 @@ end
 
 function generate_joint_offsets(joints::AbstractVector{<:Joint}, max_offset::Number)
     Dict(j => generate_joint_offset(j, max_offset) for j in joints)
-end
-
-@with_kw struct PoseDataGenerationOptions
-    num_poses::Int = 25
-    motion_capture_noise_stddev::Float64 = 1e-6
-    joint_configuration_noise_stddev::Float64 = 1e-4
-    occlusion_probability::Float64 = 0.025
 end
 
 function generate_pose_data(
@@ -106,3 +117,20 @@ function generate_pose_data(
     ground_truth_pose_data, measured_pose_data
 end
 
+function generate_calibration_problem(state::MechanismState{T}, body_weights::Dict{RigidBody{T}, T};
+        marker_options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions(), pose_options::PoseDataGenerationOptions = PoseDataGenerationOptions()) where {T}
+    bodies = collect(keys(body_weights))
+    mechanism = state.mechanism
+    correction_joints = unique(flatten([collect(path(mechanism, body1, body2)) for (body1, body2) in product(bodies, bodies)]))
+    calibration_param_bounds = Dict(j => fill((-0.05, 0.05), num_positions(j)) for j in correction_joints)
+    free_joint_configuration_bounds = Dict(j => fill((-1., 1.), num_positions(j)) for j in tree_joints(mechanism) if isfloating(j))
+    free_joints = collect(keys(free_joint_configuration_bounds))
+    ground_truth_marker_positions, measured_marker_positions = generate_marker_positions(bodies, marker_options)
+    ground_truth_offsets = Dict(j => generate_joint_offset(j, 1e-2) for j in correction_joints)
+    ground_truth_pose_data, measured_pose_data = generate_pose_data(state, ground_truth_marker_positions, ground_truth_offsets, free_joints, pose_options)
+    problem = CalibrationProblem(mechanism, calibration_param_bounds, free_joint_configuration_bounds, measured_marker_positions, measured_pose_data, body_weights)
+    ground_truth = CalibrationResult(:Optimal, 0., ground_truth_offsets, [data.configuration for data in ground_truth_pose_data], ground_truth_marker_positions)
+    problem, ground_truth
+end
+
+end # module
