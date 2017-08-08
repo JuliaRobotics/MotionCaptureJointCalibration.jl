@@ -14,11 +14,11 @@
                 addgeometry!(vis, state.mechanism, point.frame, GeometryData(sphere, semitransparent_green))
             end
         end
+        markervis = vis[:marker_measurements]
 
         cal_slider = selection_slider(["Before cal" => false, "After cal" => true])
         pose_slider = slider(1 : num_poses(result), value = 1, label = "Pose number")
         map(signal(pose_slider), signal(cal_slider)) do i, cal
-            # TODO: show measurements
             set_configuration!(state, result.configurations[i])
             if !cal
                 q_before_cal = problem.pose_data[i].configuration
@@ -27,6 +27,15 @@
                 end
             end
             settransform!(vis, state)
+
+            delete!(markervis)
+            for points in values(problem.pose_data[i].marker_positions)
+                for point in points
+                    color = RGBA(0., 0, 3 - count(isnan.(point.v)), 0.5)
+                    sphere = HyperSphere(Point{3, Float64}(point.v), radius)
+                    addgeometry!(markervis, state.mechanism, point.frame, GeometryData(sphere, color))
+                end
+            end
         end
 
         display.([cal_slider; pose_slider])
