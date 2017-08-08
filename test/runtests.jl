@@ -1,4 +1,5 @@
 using MotionCaptureJointCalibration
+using MotionCaptureJointCalibration.SyntheticDataGeneration
 using RigidBodyDynamics
 using StaticArrays
 using ValkyrieRobot
@@ -8,8 +9,6 @@ using RigidBodyTreeInspector
 using Base.Test
 
 import MotionCaptureJointCalibration: Point3DS, reconstruct!, deconstruct, _marker_residual, _∇marker_residual!
-
-include(joinpath(@__DIR__, "synthetic_data_generation.jl"))
 
 T = Float64
 
@@ -34,9 +33,11 @@ end
 free_joints = collect(keys(free_joint_configuration_bounds))
 
 srand(1)
-ground_truth_marker_positions, measured_marker_positions = generate_marker_positions(markerbodies)
-ground_truth_offsets = generate_joint_offsets(correction_joints, 1e-2)
-ground_truth_pose_data, measured_pose_data = generate_pose_data(state, ground_truth_marker_positions, ground_truth_offsets, free_joints)
+marker_options = MarkerPositionGenerationOptions()
+pose_options = PoseDataGenerationOptions()
+ground_truth_marker_positions, measured_marker_positions = generate_marker_positions(markerbodies, marker_options)
+ground_truth_offsets = Dict(j => generate_joint_offset(j, 1e-2) for j in correction_joints)
+ground_truth_pose_data, measured_pose_data = generate_pose_data(state, ground_truth_marker_positions, ground_truth_offsets, free_joints, pose_options)
 
 @testset "deconstruct/reconstruct!" begin
     q = zeros(num_positions(mechanism))
@@ -81,6 +82,15 @@ end
     end
 end
 
+@testset "problem" begin
+    problem = CalibrationProblem(mechanism, calibration_param_bounds, free_joint_configuration_bounds, measured_marker_positions, measured_pose_data)
+    @test num_poses(problem) == pose_options.num_poses
+    @test num_calibration_params(problem) == length(correction_joints)
+    @test num_markers(problem) == marker_options.num_markers * length(markerbodies)
+    @test num_bodies(problem) == length(markerbodies)
+    show(DevNull, problem)
+end
+
 @testset "solve" begin
     # NLopt SLSQP works well with up to 10 poses, free floating joint configurations and two unmeasured markers
     # solver = NLoptSolver(algorithm = :LD_SLSQP)
@@ -93,6 +103,11 @@ end
     result = solve(problem, solver)
     @test result.status == :Optimal
 
+    @test num_poses(problem) == num_poses(result)
+    @test num_calibration_params(problem) == num_calibration_params(result)
+    @test num_markers(problem) == num_markers(result)
+    @test num_bodies(problem) == num_bodies(result)
+
     # check calibration parameters
     calibration_joints = keys(calibration_param_bounds)
     for joint in calibration_joints
@@ -102,10 +117,9 @@ end
     end
 
     # check configurations
-    num_poses = length(ground_truth_pose_data)
     solution_state = MechanismState{T}(mechanism)
     ground_truth_state = MechanismState{T}(mechanism)
-    for i = 1 : num_poses
+    for i = 1 : num_poses(problem)
         set_configuration!(solution_state, result.configurations[i])
         set_configuration!(ground_truth_state, ground_truth_pose_data[i].configuration)
         for body in bodies(mechanism)

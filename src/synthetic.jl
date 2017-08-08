@@ -1,3 +1,12 @@
+module SyntheticDataGeneration
+
+export
+    MarkerPositionGenerationOptions,
+    PoseDataGenerationOptions,
+    generate_marker_positions,
+    generate_joint_offset,
+    generate_pose_data
+
 using MotionCaptureJointCalibration
 using RigidBodyDynamics
 using StaticArrays
@@ -106,3 +115,4 @@ function generate_pose_data(
     ground_truth_pose_data, measured_pose_data
 end
 
+end # module
