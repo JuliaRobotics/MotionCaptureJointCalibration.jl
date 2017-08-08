@@ -30,6 +30,7 @@ end
 num_poses(problem::CalibrationProblem) = length(problem.pose_data)
 num_calibration_params(problem::CalibrationProblem) = sum(length, values(problem.calibration_param_bounds))
 num_markers(problem::CalibrationProblem) = sum(length, values(problem.marker_location_bounds))
+num_markers(problem::CalibrationProblem, body::RigidBody) = length(problem.marker_location_bounds[body])
 RigidBodyDynamics.num_bodies(problem::CalibrationProblem) = length(problem.body_weights)
 
 function Base.show(io::IO, problem::CalibrationProblem{T}) where {T}
