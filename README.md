@@ -22,7 +22,7 @@ Currently, MotionCaptureJointCalibration can only estimate constant offsets betw
 MotionCaptureJointCalibration is not yet registered, and currently requires the master branch of RigidBodyDynamics. RigidBodyTreeInspector.jl is an optional dependency and can be used to visualize the calibration results. Please see the [.travis.yml file](https://github.com/tkoolen/MotionCaptureJointCalibration.jl/blob/master/.travis.yml) for installation instructions on Linux and OSX.
 
 ## Usage
-For now, see [the test suite](https://github.com/tkoolen/MotionCaptureJointCalibration.jl/blob/master/test/runtests.jl) for usage and to get a rough idea of the required quality of the input data.
+See [the demo notebook](https://github.com/tkoolen/MotionCaptureJointCalibration.jl/blob/master/notebook/Demo.ipynb) for usage.
 
 ## Acknowledgements
 A variant of the NLP formulation used in this package is due to Michael Posa.
