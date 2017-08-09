@@ -92,7 +92,7 @@ end
     @test num_bodies(problem) == num_bodies(result)
 
     # check calibration parameters
-    for joint in keys(problem.calibration_param_bounds)
+    for joint in calibration_joints(problem)
         @test isapprox(result.calibration_params[joint], groundtruth.calibration_params[joint]; atol = 1e-3)
     end
 

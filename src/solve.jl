@@ -7,20 +7,17 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     free_joint_configuration_bounds = problem.free_joint_configuration_bounds
     pose_data = problem.pose_data
     body_weights = problem.body_weights
+    num_poses = MotionCaptureJointCalibration.num_poses(problem)
 
     state = MechanismState{T}(mechanism)
-    calibration_joints = collect(keys(problem.calibration_param_bounds))
-    free_joints = collect(keys(problem.free_joint_configuration_bounds))
-    num_callibration_params = Dict(j => length(problem.calibration_param_bounds[j]) for j in calibration_joints)
-    num_markers = Dict(b => length(bounds) for (b, bounds) in marker_location_bounds)
-    num_poses = length(pose_data)
-
     m = Model(solver = solver)
 
     # variables
-    calibration_params = Dict(j => @variable(m, [1 : num_callibration_params[j]], basename="c_$(j.name)", start = 0.) for j in calibration_joints)
+    calibration_params = Dict(j => @variable(m, [1 : num_calibration_params(problem, j)], basename="c_$(j.name)")
+        for j in calibration_joints(problem))
     configurations = [@variable(m, [1 : num_positions(mechanism)], basename="q$i") for i = 1 : num_poses]
-    marker_positions = Dict(b => [Point3D(default_frame(b), @variable(m, [1 : 3], basename="m_$(b.name)_$i")) for i = 1 : num_markers[b]] for b in marker_bodies)
+    marker_positions = Dict(b => [Point3D(default_frame(b), @variable(m, [1 : 3], basename="m_$(b.name)_$i")) 
+        for i = 1 : num_markers(problem, b)] for b in marker_bodies)
     @variable(m, pose_residuals[1 : num_poses])
 
     # calibration param constraints
@@ -28,6 +25,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
         params = calibration_params[joint]
         setlowerbound.(params, first.(bounds))
         setupperbound.(params, last.(bounds))
+        setvalue.(params, 0)
     end
 
     # joint configuration constraints and initial values
@@ -38,7 +36,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
         for joint in tree_joints(mechanism) # to fix the order
             range = configuration_range(state, joint)
             qjoint = q[range]
-            if joint ∈ free_joints
+            if joint ∈ free_joints(problem)
                 # free joint configuration bounds
                 bounds = free_joint_configuration_bounds[joint]
                 lower = first.(bounds)
@@ -52,7 +50,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
                 end
                 setlowerbound.(qjoint, lower)
                 setupperbound.(qjoint, upper)
-            elseif joint ∈ calibration_joints
+            elseif joint ∈ calibration_joints(problem)
                 # calibration joint model
                 # TODO: generalize to handle not just offsets but also other models
                 # TODO: add redundant bounds on qjoint?
@@ -85,7 +83,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     end
 
     # objective: sum of marker residuals
-    marker_positions_body = Dict{RigidBody{T}, Vector{Point3DS{T}}}(b => [Point3D(default_frame(b), 0., 0., 0.) for i = 1 : num_markers[b]] for b in marker_bodies)
+    marker_positions_body = Dict(b => [Point3D(default_frame(b), 0., 0., 0.) for i = 1 : num_markers(problem, b)] for b in marker_bodies)
     paths_to_root = Dict(b => path(mechanism, root_body(mechanism), b) for b in marker_bodies)
     jacobians = Dict(b => (p => geometric_jacobian(state, p)) for (b, p) in paths_to_root)
     for i = 1 : num_poses
@@ -104,7 +102,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
         marker_residual_args = deconstruct(marker_bodies, configurations[i], marker_positions)
         num_marker_residual_args = length(marker_residual_args) # actually the same for all poses
         fun = Symbol("marker_residual_", i)
-        JuMP.register(m, fun, num_marker_residual_args, marker_residual, ∇marker_residual!, autodiff=false)
+        JuMP.register(m, fun, num_marker_residual_args, marker_residual, ∇marker_residual!, autodiff = false)
         arg_expressions = [:($(marker_residual_args[i])) for i = 1 : num_marker_residual_args]
         JuMP.addNLconstraint(m, :($(pose_residuals[i]) == $(fun)($(arg_expressions...))))
     end
