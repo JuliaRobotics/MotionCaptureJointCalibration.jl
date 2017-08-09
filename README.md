@@ -15,6 +15,7 @@ Features include:
 * handling of measurements of the body-fixed locations of only a subset of the markers attached to the robot (the unknown marker positions will be solved for, given rough bounds)
 * handling of measurements of only a subset of a robot's joint positions (the unknown joint positions will be solved for, given rough bounds)
 * proper handling of quaternion-parameterized floating joints (unit norm constraints for quaternions)
+* visualization of calibration results using [RigidBodyTreeInspector](https://github.com/rdeits/RigidBodyTreeInspector.jl)
 
 Currently, MotionCaptureJointCalibration can only estimate constant offsets between measured and actual joint positions.
 
