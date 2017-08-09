@@ -7,6 +7,8 @@ export
     CalibrationProblem,
     CalibrationResult,
     solve,
+    calibration_joints,
+    free_joints,
     num_poses,
     num_calibration_params,
     num_markers,
