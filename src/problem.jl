@@ -3,7 +3,7 @@ struct PoseData{T}
     marker_positions::Dict{RigidBody{T}, Vector{Point3DS{T}}}
 end
 
-type CalibrationProblem{T}
+mutable struct CalibrationProblem{T}
     mechanism::Mechanism{T}
     calibration_param_bounds::Dict{GenericJoint{T}, Vector{Tuple{T, T}}}
     free_joint_configuration_bounds::Dict{GenericJoint{T}, Vector{Tuple{T, T}}}
