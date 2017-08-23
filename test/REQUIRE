@@ -1,6 +1,6 @@
 ForwardDiff
 Ipopt
 Parameters
-RigidBodyTreeInspector
+RigidBodyTreeInspector 0.3.1
 NBInclude 1.1.0
 # ValkyrieRobot
