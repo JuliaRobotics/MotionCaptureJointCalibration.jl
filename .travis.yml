@@ -1,6 +1,7 @@
 ## Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
 dist: trusty
+sudo: required # for ZMQ
 os:
   - linux
   # - osx
