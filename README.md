@@ -7,6 +7,7 @@ MotionCaptureJointCalibration provides functionality for kinematic calibration o
 MotionCaptureJointCalibration is a small Julia library built on top of [JuMP](https://github.com/JuliaOpt/JuMP.jl) and [RigidBodyDynamics.jl](https://github.com/tkoolen/RigidBodyDynamics.jl). JuMP makes it possible to choose between various NLP solvers. [Ipopt](https://github.com/JuliaOpt/Ipopt.jl) appears to perform fairly well for the problems formulated by this package.
 
 ## News
+* October 18, 2017: [tagged version 0.0.1](https://github.com/tkoolen/MotionCaptureJointCalibration.jl/releases/tag/v0.0.1).
 * August 4, 2017: the package is under initial construction.
 
 ## Features
@@ -20,7 +21,13 @@ Features include:
 Currently, MotionCaptureJointCalibration can only estimate constant offsets between measured and actual joint positions.
 
 ## Installation
-MotionCaptureJointCalibration is not yet registered. RigidBodyTreeInspector.jl is an optional dependency and can be used to visualize the calibration results. Please see the [.travis.yml file](https://github.com/tkoolen/MotionCaptureJointCalibration.jl/blob/master/.travis.yml) for installation instructions on Linux and OSX.
+To install, simply run
+
+```julia
+Pkg.add("MotionCaptureJointCalibration")
+```
+
+This will install MotionCaptureJointCalibration and its required dependencies. RigidBodyTreeInspector.jl is an optional dependency and can be used to visualize the calibration results (`Pkg.add("RigidBodyTreeInspector")`). You'll also need an NLP solver that interfaces with JuMP, e.g. Ipopt (`Pkg.add("Ipopt")`).
 
 ## Usage
 See [the demo notebook](https://github.com/tkoolen/MotionCaptureJointCalibration.jl/blob/master/notebook/Demo.ipynb) for usage.
