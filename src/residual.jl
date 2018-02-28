@@ -43,11 +43,11 @@ function _∇marker_residual!(g::AbstractVector{T},
         marker_positions_world::Associative{RigidBody{T}, <:AbstractVector{Point3DS{T}}},
         marker_positions_body::Associative{RigidBody{T}, <:AbstractVector{Point3DS{T}}},
         body_weights::Associative{RigidBody{T}, T},
-        jacobians::Dict{RigidBody{T}, Pair{TreePath{RigidBody{T}, GenericJoint{T}}, GeometricJacobian{Matrix{T}}}}) where {T}
+        jacobians::Dict{RigidBody{T}, Pair{TreePath{RigidBody{T}, Joint{T}}, GeometricJacobian{Matrix{T}}}}) where {T}
     nq = num_positions(state)
-    ∇residual_q = view(g, 1 : nq) # TODO: allocates
+    ∇residual_q = SegmentedVector(view(g, 1 : nq), tree_joints(state.mechanism), num_positions) # TODO: allocates
     ∇residual_ps = view(g, nq + 1 : length(g)) # TODO: allocates
-    ∇residual_v = zeros(T, num_velocities(state)) # TODO: allocates
+    ∇residual_v = zeros(velocity(state)) # TODO: allocates
     mechanism = state.mechanism
     nv = num_velocities(state)
     p_index = 0

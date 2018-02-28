@@ -1,6 +1,6 @@
 function deconstruct(ordered_marker_bodies::AbstractVector{<:RigidBody}, q::AbstractVector,
         marker_positions_body::Associative{<:RigidBody, <:AbstractVector{<:Point3D}})
-    x = copy(q)
+    x = Vector(q)
     for body in ordered_marker_bodies
         positions = marker_positions_body[body]
         for j = 1 : length(positions)

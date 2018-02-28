@@ -16,3 +16,6 @@ function canonicalize!(d::Dict{RigidBody{T}, Vector{Tuple{Point3DS{T}, Point3DS{
         end
     end
 end
+
+const TreeJointSegmentedVector{T} = SegmentedVector{
+        RigidBodyDynamics.JointID, T, Base.OneTo{RigidBodyDynamics.JointID}, Vector{T}}

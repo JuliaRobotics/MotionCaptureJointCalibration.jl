@@ -1,8 +1,8 @@
 struct CalibrationResult{T}
     status::Symbol
     residual::T
-    calibration_params::Dict{GenericJoint{T}, Vector{T}}
-    configurations::Vector{Vector{T}}
+    calibration_params::Dict{<:Joint{T}, Vector{T}}
+    configurations::Vector{TreeJointSegmentedVector{T}}
     marker_positions::Dict{RigidBody{T}, Vector{Point3DS{T}}}
 end
 

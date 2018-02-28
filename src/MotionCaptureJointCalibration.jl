@@ -21,7 +21,6 @@ using JuMP
 using MathProgBase: SolverInterface.AbstractMathProgSolver
 
 import RigidBodyDynamics.Graphs: TreePath
-import RigidBodyDynamics: GenericJoint
 
 include("util.jl")
 include("problem.jl")
