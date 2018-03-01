@@ -53,7 +53,7 @@ end
     f(args) = [marker_residual_inefficient(args...)]
 
     for i = 1 : 100
-        q = rand(num_positions(mechanism)) # needs to work for non-normalized quaternions as well
+        q = rand!(similar(configuration(state))) # needs to work for non-normalized quaternions as well
         Jcheck = ForwardDiff.jacobian(f, deconstruct(markerbodies, q, groundtruth.marker_positions))
 
         set_configuration!(state, q)

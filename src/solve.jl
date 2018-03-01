@@ -15,8 +15,8 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     # variables
     calibration_params = Dict(j => @variable(m, [1 : num_calibration_params(problem, j)], basename="c_$(j.name)")
         for j in calibration_joints(problem))
-    configurations = [@variable(m, [1 : num_positions(mechanism)], basename="q$i") for i = 1 : num_poses]
-    marker_positions = Dict(b => [Point3D(default_frame(b), @variable(m, [1 : 3], basename="m_$(b.name)_$i")) 
+    configurations = [copy!(similar(configuration(state), JuMP.Variable), @variable(m, [1 : num_positions(mechanism)], basename="q$i")) for i = 1 : num_poses]
+    marker_positions = Dict(b => [Point3D(default_frame(b), @variable(m, [1 : 3], basename="m_$(b.name)_$i"))
         for i = 1 : num_markers(problem, b)] for b in marker_bodies)
     @variable(m, pose_residuals[1 : num_poses])
 
@@ -34,8 +34,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
         qmeasured = pose_data[i].configuration
         setvalue.(q, qmeasured)
         for joint in tree_joints(mechanism) # to fix the order
-            range = configuration_range(state, joint)
-            qjoint = q[range]
+            qjoint = q[joint]
             if joint ∈ free_joints(problem)
                 # free joint configuration bounds
                 bounds = free_joint_configuration_bounds[joint]
@@ -54,13 +53,12 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
                 # calibration joint model
                 # TODO: generalize to handle not just offsets but also other models
                 # TODO: add redundant bounds on qjoint?
-                qjoint_measured = qmeasured[range]
+                qjoint_measured = qmeasured[joint]
                 cjoint = calibration_params[joint]
                 @constraint(m, qjoint_measured .== qjoint .+ cjoint)
             else
                 # other joints: fix at measured position
-                qjoint_measured = qmeasured[range]
-                JuMP.fix.(qjoint, qjoint_measured)
+                JuMP.fix.(qjoint, qmeasured[joint])
             end
         end
     end
@@ -111,7 +109,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     status = JuMP.solve(m)
 
     calibration_params_sol = Dict(j => getvalue.(c) for (j, c) in calibration_params)
-    configurations_sol = getvalue.(configurations)
+    configurations_sol = [copy!(similar(configuration, T), getvalue.(configuration)) for configuration in configurations]
     marker_positions_sol = Dict(b => (p -> Point3D(p.frame, SVector{3}(getvalue.(p.v)))).(positions) for (b, positions) in marker_positions)
 
     CalibrationResult(status, getobjectivevalue(m), calibration_params_sol, configurations_sol, marker_positions_sol)

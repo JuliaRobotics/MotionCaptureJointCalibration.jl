@@ -1,12 +1,12 @@
 struct PoseData{T}
-    configuration::Vector{T}
+    configuration::TreeJointSegmentedVector{T}
     marker_positions::Dict{RigidBody{T}, Vector{Point3DS{T}}}
 end
 
 mutable struct CalibrationProblem{T}
     mechanism::Mechanism{T}
-    calibration_param_bounds::Dict{GenericJoint{T}, Vector{Tuple{T, T}}}
-    free_joint_configuration_bounds::Dict{GenericJoint{T}, Vector{Tuple{T, T}}}
+    calibration_param_bounds::Dict{<:Joint{T}, Vector{Tuple{T, T}}}
+    free_joint_configuration_bounds::Dict{<:Joint{T}, Vector{Tuple{T, T}}}
     marker_location_bounds::Dict{RigidBody{T}, Vector{Tuple{Point3DS{T}, Point3DS{T}}}}
     pose_data::Vector{PoseData{T}}
     body_weights::Dict{RigidBody{T}, T}
@@ -14,8 +14,8 @@ mutable struct CalibrationProblem{T}
 
     function CalibrationProblem(
             mechanism::Mechanism{T},
-            calibration_param_bounds::Dict{GenericJoint{T}, Vector{Tuple{T, T}}},
-            free_joint_configuration_bounds::Dict{GenericJoint{T}, Vector{Tuple{T, T}}},
+            calibration_param_bounds::Dict{<:Joint{T}, Vector{Tuple{T, T}}},
+            free_joint_configuration_bounds::Dict{<:Joint{T}, Vector{Tuple{T, T}}},
             marker_location_bounds::Dict{RigidBody{T}, Vector{Tuple{Point3DS{T}, Point3DS{T}}}},
             pose_data::Vector{PoseData{T}},
             body_weights::Dict{RigidBody{T}, T} = Dict(b => one(T) for b in keys(marker_location_bounds))) where {T}

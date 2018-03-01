@@ -23,7 +23,7 @@
             if !cal
                 q_before_cal = problem.pose_data[i].configuration
                 for joint in keys(problem.calibration_param_bounds)
-                    set_configuration!(state, joint, q_before_cal[configuration_range(state, joint)])
+                    set_configuration!(state, joint, q_before_cal[joint])
                 end
             end
             settransform!(vis, state)
