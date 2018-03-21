@@ -11,8 +11,7 @@ export
     free_joints,
     num_poses,
     num_calibration_params,
-    num_markers,
-    num_bodies
+    num_markers
 
 using Requires
 using StaticArrays
