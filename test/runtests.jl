@@ -14,7 +14,8 @@ T = Float64
 val = Valkyrie()
 mechanism = val.mechanism
 vis = Visualizer()[:valkyrie]
-setgeometry!(vis, mechanism, parse_urdf(ValkyrieRobot.urdfpath(), mechanism; package_path = [ValkyrieRobot.packagepath()]))
+geometry = visual_elements(mechanism, URDFVisuals(ValkyrieRobot.urdfpath(); package_path = [ValkyrieRobot.packagepath()]))
+setgeometry!(vis, mechanism, geometry)
 remove_fixed_tree_joints!(mechanism)
 state = MechanismState{T}(mechanism)
 

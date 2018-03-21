@@ -42,7 +42,7 @@
             end
         end
 
-        display.([cal_slider; pose_slider])
+        display.([cal_slider, pose_slider])
         nothing
     end
-end
+end # require
