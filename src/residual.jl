@@ -1,8 +1,8 @@
 function _marker_residual(state::MechanismState{X, M, C},
         ordered_marker_bodies::AbstractVector{<:RigidBody},
-        marker_positions_world::Associative{RigidBody{M}, <:AbstractVector{<:Point3D}},
-        marker_positions_body::Associative{RigidBody{M}, <:AbstractVector{<:Point3D}},
-        body_weights::Associative{RigidBody{M}, Float64}) where {X, M, C}
+        marker_positions_world::AbstractDict{RigidBody{M}, <:AbstractVector{<:Point3D}},
+        marker_positions_body::AbstractDict{RigidBody{M}, <:AbstractVector{<:Point3D}},
+        body_weights::AbstractDict{RigidBody{M}, Float64}) where {X, M, C}
     residual = zero(C)
     for body in ordered_marker_bodies
         weight = body_weights[body]
@@ -40,14 +40,14 @@ end
 function _∇marker_residual!(g::AbstractVector{T},
         state::MechanismState{T},
         ordered_marker_bodies::AbstractVector{RigidBody{T}},
-        marker_positions_world::Associative{RigidBody{T}, <:AbstractVector{Point3DS{T}}},
-        marker_positions_body::Associative{RigidBody{T}, <:AbstractVector{Point3DS{T}}},
-        body_weights::Associative{RigidBody{T}, T},
+        marker_positions_world::AbstractDict{RigidBody{T}, <:AbstractVector{Point3DS{T}}},
+        marker_positions_body::AbstractDict{RigidBody{T}, <:AbstractVector{Point3DS{T}}},
+        body_weights::AbstractDict{RigidBody{T}, T},
         jacobians::Dict{RigidBody{T}, Pair{TreePath{RigidBody{T}, Joint{T}}, GeometricJacobian{Matrix{T}}}}) where {T}
     nq = num_positions(state)
     ∇residual_q = SegmentedVector(view(g, 1 : nq), tree_joints(state.mechanism), num_positions) # TODO: allocates
     ∇residual_ps = view(g, nq + 1 : length(g)) # TODO: allocates
-    ∇residual_v = zeros(velocity(state)) # TODO: allocates
+    ∇residual_v = zero(velocity(state)) # TODO: allocates
     mechanism = state.mechanism
     nv = num_velocities(state)
     p_index = 0

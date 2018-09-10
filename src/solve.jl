@@ -15,7 +15,8 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     # variables
     calibration_params = Dict(j => @variable(m, [1 : num_calibration_params(problem, j)], basename="c_$(j.name)")
         for j in calibration_joints(problem))
-    configurations = [copy!(similar(configuration(state), JuMP.Variable), @variable(m, [1 : num_positions(mechanism)], basename="q$i")) for i = 1 : num_poses]
+    configurations = [copyto!(similar(configuration(state), JuMP.Variable),
+        @variable(m, [1 : num_positions(mechanism)], basename="q$i")) for i = 1 : num_poses]
     marker_positions = Dict(b => [Point3D(default_frame(b), @variable(m, [1 : 3], basename="m_$(b.name)_$i"))
         for i = 1 : num_markers(problem, b)] for b in marker_bodies)
     @variable(m, pose_residuals[1 : num_poses])
@@ -81,7 +82,8 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     end
 
     # objective: sum of marker residuals
-    marker_positions_body = Dict(b => [Point3D(default_frame(b), 0., 0., 0.) for i = 1 : num_markers(problem, b)] for b in marker_bodies)
+    marker_positions_body = Dict(
+        b => [Point3D(default_frame(b), 0., 0., 0.) for i = 1 : num_markers(problem, b)] for b in marker_bodies)
     paths_to_root = Dict(b => path(mechanism, root_body(mechanism), b) for b in marker_bodies)
     jacobians = Dict(b => (p => geometric_jacobian(state, p)) for (b, p) in paths_to_root)
     for i = 1 : num_poses
@@ -109,8 +111,9 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     status = JuMP.solve(m)
 
     calibration_params_sol = Dict(j => getvalue.(c) for (j, c) in calibration_params)
-    configurations_sol = [copy!(similar(configuration, T), getvalue.(configuration)) for configuration in configurations]
-    marker_positions_sol = Dict(b => (p -> Point3D(p.frame, SVector{3}(getvalue.(p.v)))).(positions) for (b, positions) in marker_positions)
+    configurations_sol = [copyto!(similar(configuration, T), getvalue.(configuration)) for configuration in configurations]
+    marker_positions_sol = Dict(b => (p -> Point3D(p.frame, SVector{3}(
+            getvalue.(p.v)))).(positions) for (b, positions) in marker_positions)
 
     CalibrationResult(status, getobjectivevalue(m), calibration_params_sol, configurations_sol, marker_positions_sol)
 end

@@ -6,7 +6,7 @@ os:
   - linux
   # - osx
 julia:
-  - 0.6
+  - 1.0
   - nightly
 branches:
   only:
@@ -16,20 +16,13 @@ notifications:
   email: false
 git:
   depth: 99999999
-addons:
-  apt:
-    packages:
-      - libzmq3
 matrix:
   allow_failures:
     - julia: nightly
-sudo: false
 addons:
   apt_packages:
     - gfortran
-## uncomment the following lines to override the default test script
-# script:
-#  - julia -e 'Pkg.clone(pwd()); Pkg.add("RigidBodyTreeInspector"); Pkg.checkout("RigidBodyTreeInspector"); Pkg.build("MotionCaptureJointCalibration"); Pkg.test("MotionCaptureJointCalibration"; coverage=true)'
+    - libzmq3
 after_success:
   # push coverage results to Codecov
-  - julia -e 'cd(Pkg.dir("MotionCaptureJointCalibration")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia --project -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
