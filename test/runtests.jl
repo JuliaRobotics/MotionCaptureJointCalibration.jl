@@ -1,26 +1,30 @@
 using MotionCaptureJointCalibration
+using DrakeVisualizer
+using RigidBodyTreeInspector
+using Interact
+
 using MotionCaptureJointCalibration.SyntheticDataGeneration
+
 using RigidBodyDynamics
 using StaticArrays
 using ValkyrieRobot
 using ForwardDiff
 using Ipopt
-using RigidBodyTreeInspector
-using Base.Test
+using NBInclude
+using Test
+using LinearAlgebra
 
-import MotionCaptureJointCalibration: Point3DS, reconstruct!, deconstruct, _marker_residual, _∇marker_residual!
+using MotionCaptureJointCalibration: Point3DS, reconstruct!, deconstruct, _marker_residual, _∇marker_residual!
+using Random: seed!, rand!
 
 T = Float64
 val = Valkyrie()
 mechanism = val.mechanism
-vis = Visualizer()[:valkyrie]
-geometry = visual_elements(mechanism, URDFVisuals(ValkyrieRobot.urdfpath(); package_path = [ValkyrieRobot.packagepath()]))
-setgeometry!(vis, mechanism, geometry)
 remove_fixed_tree_joints!(mechanism)
 state = MechanismState{T}(mechanism)
 
-markerbodies = findbody.(mechanism, ["leftFoot", "pelvis"])
-srand(1)
+markerbodies = findbody.(Ref(mechanism), ["leftFoot", "pelvis"])
+seed!(1)
 body_weights = Dict(b => rand() for b in markerbodies)
 marker_options = MarkerPositionGenerationOptions()
 pose_options = PoseDataGenerationOptions()
@@ -47,6 +51,7 @@ end
             b => [Point3D(default_frame(b), zero(X), zero(X), zero(X)) for i = 1 : num_markers(problem, b)] for b in markerbodies
         )
         reconstruct!(markerbodies, configuration(state), marker_positions_body, x...)
+        normalize_configuration!(state)
         setdirty!(state)
         _marker_residual(state, markerbodies, marker_positions_world, marker_positions_body, body_weights)
     end
@@ -54,12 +59,13 @@ end
     f(args) = [marker_residual_inefficient(args...)]
 
     for i = 1 : 100
-        q = rand!(similar(configuration(state))) # needs to work for non-normalized quaternions as well
+        rand!(state)
+        q = configuration(state)
         Jcheck = ForwardDiff.jacobian(f, deconstruct(markerbodies, q, groundtruth.marker_positions))
 
         set_configuration!(state, q)
         g = zeros(length(Jcheck))
-        paths_to_root = Dict(b => path(mechanism, root_body(mechanism), b) for b in markerbodies)
+        paths_to_root = Dict(b => RigidBodyDynamics.path(mechanism, root_body(mechanism), b) for b in markerbodies)
         jacobians = Dict(b => (p => geometric_jacobian(state, p)) for (b, p) in paths_to_root)
         _∇marker_residual!(g, state, markerbodies, marker_positions_world, groundtruth.marker_positions, body_weights, jacobians)
         J = g'
@@ -73,7 +79,7 @@ end
     @test num_calibration_params(problem) == 6
     @test num_markers(problem) == marker_options.num_markers * length(markerbodies)
     @test num_bodies(problem) == length(markerbodies)
-    show(DevNull, problem)
+    show(devnull, problem)
 end
 
 @testset "solve" begin
@@ -109,21 +115,35 @@ end
     end
 
     # printing and visualization (just to make sure the code doesn't error)
-    show(DevNull, result)
+    show(devnull, result)
+
+    vis = Visualizer()[:valkyrie]
+    geometry = visual_elements(mechanism, URDFVisuals(ValkyrieRobot.urdfpath(); package_path = [ValkyrieRobot.packagepath()]))
+    setgeometry!(vis, mechanism, geometry)
     inspect!(state, vis, problem, result)
 end
 
-# notebooks
+using RigidBodyTreeInspector
+
 @testset "example notebooks" begin
-    using NBInclude
-    notebookdir = joinpath("..", "notebooks")
-    for file in readdir(notebookdir)
-        name, ext = splitext(file)
-        if lowercase(ext) == ".ipynb"
-            @testset "$name" begin
-                println("Testing $name.")
-                nbinclude(joinpath(notebookdir, file), regex = r"^((?!\#NBSKIP).)*$"s)
+    notebookdir = joinpath(@__DIR__, "..", "notebooks")
+    excludedirs = [".ipynb_checkpoints"]
+    excludefiles = String[]
+    for (root, dir, files) in walkdir(notebookdir)
+        basename(root) in excludedirs && continue
+        for file in files
+            file in excludefiles && continue
+            name, ext = splitext(file)
+            lowercase(ext) == ".ipynb" || continue
+            path = joinpath(root, file)
+            @eval module $(gensym()) # Each notebook is run in its own module.
+            using Test
+            using NBInclude
+            @testset "Notebook: $($name)" begin
+                # Note: use #NBSKIP in a cell to skip it during tests.
+                @nbinclude($path; regex = r"^((?!\#NBSKIP).)*$"s)
             end
+            end # module
         end
     end
 end

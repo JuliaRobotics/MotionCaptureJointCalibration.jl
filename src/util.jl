@@ -12,7 +12,7 @@ end
 function canonicalize!(d::Dict{RigidBody{T}, Vector{Tuple{Point3DS{T}, Point3DS{T}}}}) where {T}
     for (body, bounds) in d
         for i in eachindex(bounds)
-            bounds[i] = canonicalize.(body, bounds[i])
+            bounds[i] = canonicalize.(Ref(body), bounds[i])
         end
     end
 end

@@ -14,7 +14,8 @@ using StaticArrays
 using Parameters
 using Base.Iterators
 
-import MotionCaptureJointCalibration: Point3DS
+using Random: randperm, rand!
+using MotionCaptureJointCalibration: Point3DS
 
 @with_kw struct MarkerPositionGenerationOptions
     marker_measurement_stddev::Float64 = 1e-5
@@ -30,7 +31,8 @@ end
     occlusion_probability::Float64 = 0.025
 end
 
-function generate_marker_positions(bodies::AbstractVector{<:RigidBody}, options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions())
+function generate_marker_positions(bodies::AbstractVector{<:RigidBody},
+        options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions())
     # Marker positions in body frame
     B = eltype(bodies)
     T = Float64
@@ -67,8 +69,8 @@ end
 
 function generate_pose_data(
         state::MechanismState{X, M, C},
-        ground_truth_marker_positions::Associative{<:RigidBody{M}, <:AbstractVector{Point3DS{T}}},
-        ground_truth_offsets::Associative{<:Joint{M}, <:AbstractVector{T}},
+        ground_truth_marker_positions::AbstractDict{<:RigidBody{M}, <:AbstractVector{Point3DS{T}}},
+        ground_truth_offsets::AbstractDict{<:Joint{M}, <:AbstractVector{T}},
         free_joints::AbstractVector{<:Joint{M}},
         options::PoseDataGenerationOptions = PoseDataGenerationOptions()) where {X, M, C, T}
     ground_truth_pose_data = Vector{PoseData{C}}()
@@ -120,18 +122,27 @@ function generate_pose_data(
 end
 
 function generate_calibration_problem(state::MechanismState{T}, body_weights::Dict{RigidBody{T}, T};
-        marker_options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions(), pose_options::PoseDataGenerationOptions = PoseDataGenerationOptions()) where {T}
+        marker_options::MarkerPositionGenerationOptions = MarkerPositionGenerationOptions(),
+        pose_options::PoseDataGenerationOptions = PoseDataGenerationOptions()) where {T}
     bodies = collect(keys(body_weights))
     mechanism = state.mechanism
-    correction_joints = unique(flatten([collect(path(mechanism, body1, body2)) for (body1, body2) in product(bodies, bodies)]))
+    correction_joints = unique(flatten([collect(RigidBodyDynamics.path(mechanism, body1, body2)) for (body1, body2) in product(bodies, bodies)]))
     calibration_param_bounds = Dict{Joint{T}, Vector{Tuple{T, T}}}(j => fill((-0.05, 0.05), num_positions(j)) for j in correction_joints)
-    free_joint_configuration_bounds = Dict{Joint{T}, Vector{Tuple{T, T}}}(j => fill((-1., 1.), num_positions(j)) for j in tree_joints(mechanism) if isfloating(j))
+    free_joint_configuration_bounds = Dict{Joint{T}, Vector{Tuple{T, T}}}(
+        j => fill((-1., 1.), num_positions(j)) for j in tree_joints(mechanism) if isfloating(j))
     free_joints = collect(keys(free_joint_configuration_bounds))
     ground_truth_marker_positions, measured_marker_positions = generate_marker_positions(bodies, marker_options)
     ground_truth_offsets = Dict{Joint{T}, Vector{T}}(j => generate_joint_offset(j, 1e-2) for j in correction_joints)
-    ground_truth_pose_data, measured_pose_data = generate_pose_data(state, ground_truth_marker_positions, ground_truth_offsets, free_joints, pose_options)
-    problem = CalibrationProblem(mechanism, calibration_param_bounds, free_joint_configuration_bounds, measured_marker_positions, measured_pose_data, body_weights)
-    ground_truth = CalibrationResult(:Optimal, 0., ground_truth_offsets, [data.configuration for data in ground_truth_pose_data], ground_truth_marker_positions)
+    ground_truth_pose_data, measured_pose_data =
+        generate_pose_data(state, ground_truth_marker_positions, ground_truth_offsets, free_joints, pose_options)
+    problem = CalibrationProblem(
+        mechanism,
+        calibration_param_bounds,
+        free_joint_configuration_bounds,
+        measured_marker_positions,
+        measured_pose_data, body_weights)
+    configurations = [data.configuration for data in ground_truth_pose_data]
+    ground_truth = CalibrationResult(:Optimal, 0., ground_truth_offsets, configurations, ground_truth_marker_positions)
     problem, ground_truth
 end
 

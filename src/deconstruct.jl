@@ -1,5 +1,5 @@
 function deconstruct(ordered_marker_bodies::AbstractVector{<:RigidBody}, q::AbstractVector,
-        marker_positions_body::Associative{<:RigidBody, <:AbstractVector{<:Point3D}})
+        marker_positions_body::AbstractDict{<:RigidBody, <:AbstractVector{<:Point3D}})
     x = Vector(q)
     for body in ordered_marker_bodies
         positions = marker_positions_body[body]
@@ -11,7 +11,7 @@ function deconstruct(ordered_marker_bodies::AbstractVector{<:RigidBody}, q::Abst
 end
 
 function reconstruct!(ordered_marker_bodies::AbstractVector{<:RigidBody}, q::AbstractVector,
-        marker_positions_body::Associative{<:RigidBody, <:AbstractVector{<:Point3D}}, x...)
+        marker_positions_body::AbstractDict{<:RigidBody, <:AbstractVector{<:Point3D}}, x...)
     index = 1
     for i = 1 : length(q)
         q[i] = x[index]

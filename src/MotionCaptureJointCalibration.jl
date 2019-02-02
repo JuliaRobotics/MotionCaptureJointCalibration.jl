@@ -1,5 +1,3 @@
-__precompile__(true)
-
 module MotionCaptureJointCalibration
 
 export
@@ -17,9 +15,10 @@ using Requires
 using StaticArrays
 using RigidBodyDynamics
 using JuMP
-using MathProgBase: SolverInterface.AbstractMathProgSolver
+using LinearAlgebra
 
-import RigidBodyDynamics.Graphs: TreePath
+using MathProgBase: SolverInterface.AbstractMathProgSolver
+using RigidBodyDynamics.Graphs: TreePath
 
 include("util.jl")
 include("problem.jl")
@@ -27,7 +26,16 @@ include("result.jl")
 include("deconstruct.jl")
 include("residual.jl")
 include("solve.jl")
-include("visualization.jl")
 include("synthetic.jl")
+
+function __init__()
+    @require DrakeVisualizer="49c7015b-b8db-5bc5-841b-fcb31c578176" begin
+        @require RigidBodyTreeInspector="82daab19-8fc9-5c1e-9f69-37d6aaa0269b" begin
+            @require Interact="c601a237-2ae4-5e1e-952c-7a85b0c7eef1" begin
+                include("visualization.jl")
+            end
+        end
+    end
+end
 
 end # module
