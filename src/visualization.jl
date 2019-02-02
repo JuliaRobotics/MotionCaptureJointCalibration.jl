@@ -1,6 +1,6 @@
+using DrakeVisualizer
 using RigidBodyTreeInspector
-using ColorTypes: RGBA
-using GeometryTypes: HyperSphere, Point
+using RigidBodyTreeInspector: RGBA, HyperSphere, Point
 using Interact
 
 function RigidBodyTreeInspector.inspect!(state::MechanismState, vis::Visualizer, problem::CalibrationProblem, result::CalibrationResult)
@@ -14,9 +14,9 @@ function RigidBodyTreeInspector.inspect!(state::MechanismState, vis::Visualizer,
     end
     markervis = vis[:marker_measurements]
 
-    cal_slider = selection_slider(["Before cal" => false, "After cal" => true])
+    cal_selector = radiobuttons(Dict("Before calibration" => false, "After calibration" => true))
     pose_slider = slider(1 : num_poses(result), value = 1, label = "Pose number")
-    map(signal(pose_slider), signal(cal_slider)) do i, cal
+    map(pose_slider, cal_selector) do i, cal
         set_configuration!(state, result.configurations[i])
         if !cal
             q_before_cal = problem.pose_data[i].configuration
@@ -40,6 +40,5 @@ function RigidBodyTreeInspector.inspect!(state::MechanismState, vis::Visualizer,
         end
     end
 
-    display.([cal_slider, pose_slider])
-    nothing
+    vbox(cal_selector, pose_slider)
 end

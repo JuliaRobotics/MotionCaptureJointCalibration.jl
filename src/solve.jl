@@ -84,7 +84,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     # objective: sum of marker residuals
     marker_positions_body = Dict(
         b => [Point3D(default_frame(b), 0., 0., 0.) for i = 1 : num_markers(problem, b)] for b in marker_bodies)
-    paths_to_root = Dict(b => path(mechanism, root_body(mechanism), b) for b in marker_bodies)
+    paths_to_root = Dict(b => RigidBodyDynamics.path(mechanism, root_body(mechanism), b) for b in marker_bodies)
     jacobians = Dict(b => (p => geometric_jacobian(state, p)) for (b, p) in paths_to_root)
     for i = 1 : num_poses
         marker_residual = (args::Float64...) -> begin

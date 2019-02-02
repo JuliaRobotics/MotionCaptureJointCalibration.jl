@@ -126,7 +126,7 @@ function generate_calibration_problem(state::MechanismState{T}, body_weights::Di
         pose_options::PoseDataGenerationOptions = PoseDataGenerationOptions()) where {T}
     bodies = collect(keys(body_weights))
     mechanism = state.mechanism
-    correction_joints = unique(flatten([collect(path(mechanism, body1, body2)) for (body1, body2) in product(bodies, bodies)]))
+    correction_joints = unique(flatten([collect(RigidBodyDynamics.path(mechanism, body1, body2)) for (body1, body2) in product(bodies, bodies)]))
     calibration_param_bounds = Dict{Joint{T}, Vector{Tuple{T, T}}}(j => fill((-0.05, 0.05), num_positions(j)) for j in correction_joints)
     free_joint_configuration_bounds = Dict{Joint{T}, Vector{Tuple{T, T}}}(
         j => fill((-1., 1.), num_positions(j)) for j in tree_joints(mechanism) if isfloating(j))

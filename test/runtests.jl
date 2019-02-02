@@ -1,10 +1,16 @@
 using MotionCaptureJointCalibration
+using DrakeVisualizer
+using RigidBodyTreeInspector
+using Interact
+
 using MotionCaptureJointCalibration.SyntheticDataGeneration
+
 using RigidBodyDynamics
 using StaticArrays
 using ValkyrieRobot
 using ForwardDiff
 using Ipopt
+using NBInclude
 using Test
 using LinearAlgebra
 
@@ -59,7 +65,7 @@ end
 
         set_configuration!(state, q)
         g = zeros(length(Jcheck))
-        paths_to_root = Dict(b => path(mechanism, root_body(mechanism), b) for b in markerbodies)
+        paths_to_root = Dict(b => RigidBodyDynamics.path(mechanism, root_body(mechanism), b) for b in markerbodies)
         jacobians = Dict(b => (p => geometric_jacobian(state, p)) for (b, p) in paths_to_root)
         _∇marker_residual!(g, state, markerbodies, marker_positions_world, groundtruth.marker_positions, body_weights, jacobians)
         J = g'
@@ -111,25 +117,33 @@ end
     # printing and visualization (just to make sure the code doesn't error)
     show(devnull, result)
 
-    # vis = Visualizer()[:valkyrie]
-    # geometry = visual_elements(mechanism, URDFVisuals(ValkyrieRobot.urdfpath(); package_path = [ValkyrieRobot.packagepath()]))
-    # setgeometry!(vis, mechanism, geometry)
-    # inspect!(state, vis, problem, result)
+    vis = Visualizer()[:valkyrie]
+    geometry = visual_elements(mechanism, URDFVisuals(ValkyrieRobot.urdfpath(); package_path = [ValkyrieRobot.packagepath()]))
+    setgeometry!(vis, mechanism, geometry)
+    inspect!(state, vis, problem, result)
 end
 
-# using RigidBodyTreeInspector
+using RigidBodyTreeInspector
 
-# notebooks
-# @testset "example notebooks" begin
-#     using NBInclude
-#     notebookdir = joinpath("..", "notebooks")
-#     for file in readdir(notebookdir)
-#         name, ext = splitext(file)
-#         if lowercase(ext) == ".ipynb"
-#             @testset "$name" begin
-#                 println("Testing $name.")
-#                 nbinclude(joinpath(notebookdir, file), regex = r"^((?!\#NBSKIP).)*$"s)
-#             end
-#         end
-#     end
-# end
+@testset "example notebooks" begin
+    notebookdir = joinpath(@__DIR__, "..", "notebooks")
+    excludedirs = [".ipynb_checkpoints"]
+    excludefiles = String[]
+    for (root, dir, files) in walkdir(notebookdir)
+        basename(root) in excludedirs && continue
+        for file in files
+            file in excludefiles && continue
+            name, ext = splitext(file)
+            lowercase(ext) == ".ipynb" || continue
+            path = joinpath(root, file)
+            @eval module $(gensym()) # Each notebook is run in its own module.
+            using Test
+            using NBInclude
+            @testset "Notebook: $($name)" begin
+                # Note: use #NBSKIP in a cell to skip it during tests.
+                @nbinclude($path; regex = r"^((?!\#NBSKIP).)*$"s)
+            end
+            end # module
+        end
+    end
+end
