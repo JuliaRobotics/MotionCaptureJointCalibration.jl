@@ -3,6 +3,7 @@ function _marker_residual(state::MechanismState{X, M, C},
         marker_positions_world::AbstractDict{RigidBody{M}, <:AbstractVector{<:Point3D}},
         marker_positions_body::AbstractDict{RigidBody{M}, <:AbstractVector{<:Point3D}},
         body_weights::AbstractDict{RigidBody{M}, Float64}) where {X, M, C}
+    normalize_configuration!(state)
     residual = zero(C)
     for body in ordered_marker_bodies
         weight = body_weights[body]
@@ -44,6 +45,7 @@ function _∇marker_residual!(g::AbstractVector{T},
         marker_positions_body::AbstractDict{RigidBody{T}, <:AbstractVector{Point3DS{T}}},
         body_weights::AbstractDict{RigidBody{T}, T},
         jacobians::Dict{RigidBody{T}, Pair{TreePath{RigidBody{T}, Joint{T}}, GeometricJacobian{Matrix{T}}}}) where {T}
+    normalize_configuration!(state)
     nq = num_positions(state)
     ∇residual_q = SegmentedVector(view(g, 1 : nq), tree_joints(state.mechanism), num_positions) # TODO: allocates
     ∇residual_ps = view(g, nq + 1 : length(g)) # TODO: allocates

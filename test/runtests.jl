@@ -45,6 +45,7 @@ end
             b => [Point3D(default_frame(b), zero(X), zero(X), zero(X)) for i = 1 : num_markers(problem, b)] for b in markerbodies
         )
         reconstruct!(markerbodies, configuration(state), marker_positions_body, x...)
+        normalize_configuration!(state)
         setdirty!(state)
         _marker_residual(state, markerbodies, marker_positions_world, marker_positions_body, body_weights)
     end
@@ -52,7 +53,8 @@ end
     f(args) = [marker_residual_inefficient(args...)]
 
     for i = 1 : 100
-        q = rand!(similar(configuration(state))) # needs to work for non-normalized quaternions as well
+        rand!(state)
+        q = configuration(state)
         Jcheck = ForwardDiff.jacobian(f, deconstruct(markerbodies, q, groundtruth.marker_positions))
 
         set_configuration!(state, q)

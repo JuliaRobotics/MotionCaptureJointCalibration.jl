@@ -89,12 +89,14 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
     for i = 1 : num_poses
         marker_residual = (args::Float64...) -> begin
             reconstruct!(marker_bodies, configuration(state), marker_positions_body, args...)
+            normalize_configuration!(state)
             setdirty!(state)
             _marker_residual(state, marker_bodies, pose_data[i].marker_positions, marker_positions_body, body_weights)
         end
 
         ∇marker_residual! = (g, args::Float64...) -> begin
             reconstruct!(marker_bodies, configuration(state), marker_positions_body, args...)
+            normalize_configuration!(state)
             setdirty!(state)
             _∇marker_residual!(g, state, marker_bodies, pose_data[i].marker_positions, marker_positions_body, body_weights, jacobians)
         end
@@ -107,6 +109,7 @@ function solve(problem::CalibrationProblem{T}, solver::AbstractMathProgSolver) w
         JuMP.addNLconstraint(m, :($(pose_residuals[i]) == $(fun)($(arg_expressions...))))
     end
     @NLobjective(m, Min, sum(pose_residuals[i] for i = 1 : num_poses) / num_poses)
+    @objective m Min 0
 
     status = JuMP.solve(m)
 
