@@ -30,7 +30,7 @@ Pkg.add("MotionCaptureJointCalibration")
 This will install MotionCaptureJointCalibration and its required dependencies. RigidBodyTreeInspector.jl is an optional dependency and can be used to visualize the calibration results (`Pkg.add("RigidBodyTreeInspector")`). You'll also need an NLP solver that interfaces with JuMP, e.g. Ipopt (`Pkg.add("Ipopt")`).
 
 ## Usage
-See [the demo notebook](https://github.com/JuliaRobotics/MotionCaptureJointCalibration.jl/blob/master/notebook/Demo.ipynb) for usage.
+See [the demo notebook](https://github.com/JuliaRobotics/MotionCaptureJointCalibration.jl/blob/master/notebooks/Demo.ipynb) for usage.
 
 ## Acknowledgements
 A variant of the NLP formulation used in this package is due to Michael Posa.
