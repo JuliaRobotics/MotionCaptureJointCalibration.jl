@@ -16,7 +16,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 JuMP = "~0.18.0"
 NBInclude = "≥ 1.1.0"
 Requires = "≥ 0.5.2"
-RigidBodyDynamics = "^1"
+RigidBodyDynamics = "^1, 2.2"
 RigidBodyTreeInspector = "≥ 0.3.1"
 julia = "≥ 0.7.0"
 
