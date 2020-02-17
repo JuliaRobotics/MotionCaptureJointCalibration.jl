@@ -13,7 +13,7 @@ RigidBodyDynamics = "366cf18f-59d5-5db9-a4de-86a9f6786172"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-JuMP = "~0.18.0"
+JuMP = "~0.18.0, 0.21"
 NBInclude = "≥ 1.1.0"
 Parameters = "0.12"
 Requires = "≥ 0.5.2"
